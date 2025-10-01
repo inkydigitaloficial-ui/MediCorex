@@ -2,7 +2,7 @@
 'use server';
 
 import { z } from 'zod';
-import { getApps, initializeApp, App } from 'firebase-admin/app';
+import { getApps, initializeApp, App, cert } from 'firebase-admin/app';
 import { getAuth as getAdminAuth } from 'firebase-admin/auth';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { redirect } from 'next/navigation';
@@ -15,7 +15,18 @@ function initializeAdminApp(): App {
         return apps[0];
     }
     // This will use Application Default Credentials on Google Cloud environments.
-    return initializeApp();
+    // For local development, it requires the GOOGLE_APPLICATION_CREDENTIALS env var.
+    // As a fallback for local dev without the env var, we can check for other config.
+    try {
+        return initializeApp();
+    } catch (e) {
+        console.warn("Automatic initialization failed, falling back to other methods if available. Error: ", e);
+        // Fallback for local dev might be needed if env var is not set.
+        // Since we don't have service account details, this will likely fail locally
+        // if GOOGLE_APPLICATION_CREDENTIALS is not set.
+        // We will proceed and let the error be caught by the action handler.
+        throw new Error("Firebase Admin SDK initialization failed. Ensure GOOGLE_APPLICATION_CREDENTIALS is set for local development.");
+    }
 }
 
 const signupSchema = z.object({
@@ -122,11 +133,6 @@ export async function signupAction(prevState: SignupFormState, formData: FormDat
         });
     });
 
-    // The user will be redirected on the client-side after successful sign-in
-    // but we still need to handle the server action completion.
-    // We will redirect from the signup page itself upon success.
-    // For now, let's just let the signup flow complete on the page.
-
   } catch (error: any) {
     console.error('Erro no cadastro:', error);
     if (error.code === 'auth/email-already-exists') {
@@ -139,7 +145,6 @@ export async function signupAction(prevState: SignupFormState, formData: FormDat
   }
 
   // Redirect happens on the client after successful form submission.
-  // The page will get a success state and then redirect.
   redirect(`/auth/login?signup=success`);
 }
 

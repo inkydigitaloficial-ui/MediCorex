@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -81,7 +82,7 @@ export const gerarResumoPacienteFlow = ai.defineFlow({
     config: { temperature: 0.3 },
   });
 
-  const resumo = llmResponse.text;
+  const resumo = llmResponse.text();
 
   // 💾 Salva o resumo gerado para fins de auditoria
   await pacienteDocRef.collection('historico_ia').add({
