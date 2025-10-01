@@ -30,7 +30,7 @@ type Props = {
 };
 
 function TrialBanner({ trialEnds }: { trialEnds: Date }) {
-  const daysLeft = differenceInDays(trialEnds, new Date());
+  const daysLeft = differenceInDays(new Date(trialEnds), new Date());
 
   if (daysLeft < 0) return null; // Não mostra se o trial já acabou
 
@@ -56,7 +56,7 @@ export default async function TenantLayout({ children, params }: Props) {
       notFound();
     }
 
-    const trialEndsDate = tenantData.trialEnds?.toDate();
+    const trialEndsDate = tenantData.trialEnds ? new Date(tenantData.trialEnds) : null;
 
     // 🚨 VALIDAÇÃO DE ASSINATURA: Se o plano é trial e a data de teste já passou
     if (tenantData.subscriptionStatus === 'trialing' && trialEndsDate && new Date() > trialEndsDate) {

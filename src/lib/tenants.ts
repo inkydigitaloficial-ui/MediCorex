@@ -11,6 +11,7 @@ function initializeAdminApp(): App {
   }
   // This will use the GOOGLE_APPLICATION_CREDENTIALS environment variable
   // for authentication when deployed on Google Cloud infrastructure.
+  // For local dev, this setup assumes the emulator or a service account is configured.
   return initializeApp();
 }
 
@@ -42,7 +43,16 @@ export async function getTenantData(tenantId: string): Promise<any | null> {
       return null;
     }
 
-    return { id: tenantDoc.id, ...tenantDoc.data() };
+    const data = tenantDoc.data();
+    // Convert Timestamps to serializable format (e.g., Date objects)
+    if (data?.trialEnds?.toDate) {
+      data.trialEnds = data.trialEnds.toDate();
+    }
+    if (data?.createdAt?.toDate) {
+      data.createdAt = data.createdAt.toDate();
+    }
+    
+    return { id: tenantDoc.id, ...data };
   } catch (error) {
     console.error(`Error fetching tenant data for ${tenantId}:`, error);
     // Re-throwing the error or returning null depends on how you want to handle it upstream.

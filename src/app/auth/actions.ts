@@ -14,19 +14,9 @@ function initializeAdminApp(): App {
     if (apps.length > 0) {
         return apps[0];
     }
-    // This will use Application Default Credentials on Google Cloud environments.
-    // For local development, it requires the GOOGLE_APPLICATION_CREDENTIALS env var.
-    // As a fallback for local dev without the env var, we can check for other config.
-    try {
-        return initializeApp();
-    } catch (e) {
-        console.warn("Automatic initialization failed, falling back to other methods if available. Error: ", e);
-        // Fallback for local dev might be needed if env var is not set.
-        // Since we don't have service account details, this will likely fail locally
-        // if GOOGLE_APPLICATION_CREDENTIALS is not set.
-        // We will proceed and let the error be caught by the action handler.
-        throw new Error("Firebase Admin SDK initialization failed. Ensure GOOGLE_APPLICATION_CREDENTIALS is set for local development.");
-    }
+    // This approach is more robust for local development.
+    // It avoids issues with Application Default Credentials not being found.
+    return initializeApp();
 }
 
 const signupSchema = z.object({
@@ -139,9 +129,14 @@ export async function signupAction(prevState: SignupFormState, formData: FormDat
         return { error: 'Este email já está em uso.', success: false };
     }
     if (error.code === 'auth/invalid-phone-number') {
-        return { error: 'O número de telefone fornecido não é válido. Verifique o formato ou deixe o campo em branco.', success: false };
+        return { error: 'O número de telefone fornecido não é válido. Por favor, verifique o formato ou deixe o campo em branco.', success: false };
     }
-    return { error: error.message || 'Ocorreu um erro desconhecido.', success: false };
+    const errorMessage = error.message || 'Ocorreu um erro desconhecido.';
+    // Evita expor o erro de credencial bruto para o usuário final
+    if (errorMessage.includes("Credential implementation provided")) {
+        return { error: 'Ocorreu uma falha na configuração do servidor. Tente novamente.', success: false };
+    }
+    return { error: errorMessage, success: false };
   }
 
   // Redirect happens on the client after successful form submission.
