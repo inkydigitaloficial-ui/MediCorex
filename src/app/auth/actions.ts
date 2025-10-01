@@ -2,24 +2,21 @@
 'use server';
 
 import { z } from 'zod';
-import { getApps, initializeApp } from 'firebase-admin/app';
+import { getApps, initializeApp, App } from 'firebase-admin/app';
 import { getAuth as getAdminAuth } from 'firebase-admin/auth';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { redirect } from 'next/navigation';
 import { addDays } from 'date-fns';
 
 // Helper to initialize Firebase Admin SDK idempotently
-function initializeAdminApp() {
+function initializeAdminApp(): App {
     const apps = getApps();
     if (apps.length > 0) {
         return apps[0];
     }
+    // This will use Application Default Credentials on Google Cloud environments.
     return initializeApp();
 }
-
-const adminApp = initializeAdminApp();
-const adminAuth = getAdminAuth(adminApp);
-const db = getFirestore(adminApp);
 
 const signupSchema = z.object({
   name: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres.' }),
@@ -56,6 +53,18 @@ export async function signupAction(prevState: SignupFormState, formData: FormDat
   }
   
   const { name, email, password, phone } = validatedFields.data;
+
+  let adminAuth;
+  let db;
+
+  try {
+    const adminApp = initializeAdminApp();
+    adminAuth = getAdminAuth(adminApp);
+    db = getFirestore(adminApp);
+  } catch (error: any) {
+    console.error('Erro ao inicializar Firebase Admin SDK:', error);
+    return { error: 'Falha na configuração do servidor. Tente novamente mais tarde.', success: false };
+  }
 
   try {
     const userPayload: any = {
@@ -113,11 +122,10 @@ export async function signupAction(prevState: SignupFormState, formData: FormDat
         });
     });
 
-    const protocol = process.env.NODE_ENV === 'development' ? 'https' : 'https';
-    const host = process.env.ROOT_DOMAIN || 'localhost:9002';
-    
-    // Redirect to the new tenant's subdomain's login page
-    redirect(`${protocol}://${tenantSlug}.${host}/auth/login?signup=success`);
+    // The user will be redirected on the client-side after successful sign-in
+    // but we still need to handle the server action completion.
+    // We will redirect from the signup page itself upon success.
+    // For now, let's just let the signup flow complete on the page.
 
   } catch (error: any) {
     console.error('Erro no cadastro:', error);
@@ -129,6 +137,10 @@ export async function signupAction(prevState: SignupFormState, formData: FormDat
     }
     return { error: error.message || 'Ocorreu um erro desconhecido.', success: false };
   }
+
+  // Redirect happens on the client after successful form submission.
+  // The page will get a success state and then redirect.
+  redirect(`/auth/login?signup=success`);
 }
 
 
@@ -142,6 +154,17 @@ export async function loginAction(prevState: LoginFormState, formData: FormData)
     }
     
     const { email } = validatedFields.data;
+
+    let adminAuth;
+    let db;
+    try {
+        const adminApp = initializeAdminApp();
+        adminAuth = getAdminAuth(adminApp);
+        db = getFirestore(adminApp);
+    } catch (error: any) {
+        console.error('Erro ao inicializar Firebase Admin SDK:', error);
+        return { error: 'Falha na configuração do servidor. Tente novamente mais tarde.', success: false };
+    }
 
     let userRecord;
     try {

@@ -19,14 +19,15 @@ try {
   const adminApp = initializeAdminApp();
   db = getFirestore(adminApp);
 } catch (error) {
-  console.error("Failed to initialize Firebase Admin SDK:", error);
-  // If the SDK fails to initialize, we cannot proceed with DB operations.
-  // We can throw an error or handle it gracefully depending on the desired behavior.
-  throw new Error("Firebase Admin SDK could not be initialized.");
+  console.error("Failed to initialize Firebase Admin SDK in tenants.ts:", error);
+  // This will prevent the module from being used if initialization fails.
 }
 
 
 export async function getTenantData(tenantId: string): Promise<any | null> {
+  if (!db) {
+    throw new Error("Firestore is not initialized. Cannot fetch tenant data.");
+  }
   if (!tenantId) {
     return null;
   }
