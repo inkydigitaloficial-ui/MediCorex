@@ -4,10 +4,10 @@ export interface Paciente {
     id?: string;
     nome: string;
     email: string;
-    cpf: string;
-    dataNascimento: Timestamp;
-    telefone: string;
-    endereco: {
+    cpf?: string;
+    dataNascimento?: Timestamp;
+    telefone?: string;
+    endereco?: {
         rua: string;
         numero: string;
         bairro: string;
@@ -15,7 +15,7 @@ export interface Paciente {
         estado: string;
         cep: string;
     };
-    historicoConsultas: string[]; // IDs de consultas
+    historicoConsultas?: string[]; // IDs de consultas
     createdAt: Timestamp;
     updatedAt: Timestamp;
 }
