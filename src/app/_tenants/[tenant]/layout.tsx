@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { ReactNode } from 'react';
-import { BarChart, LogOut, Settings } from 'lucide-react';
+import { BarChart, LogOut, Settings, Users } from 'lucide-react';
 
 import { getTenantData } from '@/lib/tenants';
 import { TenantProvider } from '@/hooks/use-tenant';
@@ -56,10 +56,20 @@ export default async function TenantLayout({ children, params }: Props) {
             <SidebarContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton tooltip="Insights Dashboard" isActive>
-                    <BarChart />
-                    <span>Insights</span>
-                  </SidebarMenuButton>
+                   <Link href={`/_tenants/${tenantId}`} passHref>
+                        <SidebarMenuButton tooltip="Insights Dashboard">
+                            <BarChart />
+                            <span>Insights</span>
+                        </SidebarMenuButton>
+                   </Link>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <Link href={`/_tenants/${tenantId}/customers`} passHref>
+                        <SidebarMenuButton tooltip="Customers">
+                            <Users />
+                            <span>Customers</span>
+                        </SidebarMenuButton>
+                    </Link>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton tooltip="Settings">
@@ -91,7 +101,7 @@ export default async function TenantLayout({ children, params }: Props) {
             <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
               <SidebarTrigger className="md:hidden" />
               <div className="w-full flex-1">
-                <h2 className="text-xl font-semibold">Customer Insights</h2>
+                {/* O título pode ser dinâmico com base na página */}
               </div>
             </header>
             {children}
