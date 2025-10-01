@@ -124,3 +124,4 @@ export const updateUserClaimsOnRoleChange = functions.firestore
       return null;
     }
   });
+

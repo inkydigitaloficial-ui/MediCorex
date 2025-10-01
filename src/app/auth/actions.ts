@@ -100,3 +100,4 @@ export async function findUserTenantAction(userId: string): Promise<FindTenantSt
     return { error: 'Ocorreu um erro no servidor ao procurar sua clínica.', tenantId: null };
   }
 }
+
