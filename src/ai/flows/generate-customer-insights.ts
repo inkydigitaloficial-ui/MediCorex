@@ -122,7 +122,7 @@ const generateCustomerInsightsFlow = ai.defineFlow(
         }
       });
 
-      const aiResponse = llmResponse.output();
+      const aiResponse = llmResponse.output;
       if (!aiResponse) {
         throw new Error('A IA não retornou uma resposta válida.');
       }
