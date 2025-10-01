@@ -9,9 +9,6 @@ function initializeAdminApp(): App {
   if (apps.length > 0) {
     return apps[0];
   }
-  // This will use the GOOGLE_APPLICATION_CREDENTIALS environment variable
-  // for authentication when deployed on Google Cloud infrastructure.
-  // For local dev, this setup assumes the emulator or a service account is configured.
   return initializeApp();
 }
 
