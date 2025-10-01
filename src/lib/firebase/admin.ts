@@ -1,47 +1,27 @@
-import 'server-only';
-import { initializeApp, getApps, App } from 'firebase-admin/app';
-import { getFirestore, Firestore } from 'firebase-admin/firestore';
+'use server';
 
-function initializeAdminApp(): App {
+import { initializeApp, getApp, getApps, App } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
+
+// Função para inicializar o app do Firebase Admin de forma idempotente.
+// Isso garante que, não importa quantas vezes este módulo seja importado,
+// a inicialização ocorra apenas uma vez.
+function createFirebaseAdminApp(): App {
   const apps = getApps();
   if (apps.length > 0) {
-    return apps[0];
+    // Retorna a instância existente se já foi inicializada.
+    return getApp();
   }
+
+  // Se nenhuma instância existir, inicializa uma nova.
+  // O SDK Admin buscará automaticamente as credenciais do ambiente
+  // (e.g., GOOGLE_APPLICATION_CREDENTIALS ou FIREBASE_CONFIG).
   return initializeApp();
 }
 
-let db: Firestore;
-
-try {
-  const adminApp = initializeAdminApp();
-  db = getFirestore(adminApp);
-} catch (error) {
-  console.error("Failed to initialize Firebase Admin SDK:", error);
-  throw new Error("Firebase Admin SDK could not be initialized.");
-}
-
-
-export async function getTenantData(tenantId: string): Promise<any | null> {
-  if (!tenantId) {
-    return null;
-  }
-
-  try {
-    const tenantDocRef = db.collection('tenants').doc(tenantId);
-    const tenantDoc = await tenantDocRef.get();
-
-    if (!tenantDoc.exists) {
-      console.log(`Tenant with ID ${tenantId} not found.`);
-      return null;
-    }
-
-    return { id: tenantDoc.id, ...tenantDoc.data() };
-  } catch (error) {
-    console.error(`Error fetching tenant data for ${tenantId}:`, error);
-    throw error;
-  }
-}
-
-export function isValidTenantIdFormat(tenantId: string): boolean {
-  return /^[a-zA-Z0-9-]+$/.test(tenantId);
-}
+// Inicializa e exporta as instâncias como singletons.
+// Estes serão os únicos pontos de acesso para os serviços do Firebase Admin no lado do servidor.
+export const adminApp = createFirebaseAdminApp();
+export const adminAuth = getAuth(adminApp);
+export const adminFirestore = getFirestore(adminApp);

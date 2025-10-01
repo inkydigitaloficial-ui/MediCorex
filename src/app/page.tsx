@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, Building, CircuitBoard, Lock } from "lucide-react";
+import { ArrowRight, Building, CircuitBoard, Lock, CheckCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
@@ -21,6 +21,11 @@ export default function Home() {
           <Button variant="ghost" asChild>
             <Link href="#features" prefetch={false}>
               Recursos
+            </Link>
+          </Button>
+          <Button variant="ghost" asChild>
+            <Link href="#pricing" prefetch={false}>
+              Preços
             </Link>
           </Button>
           <Button asChild>
@@ -130,6 +135,123 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        <section id="pricing" className="w-full py-12 md:py-24 lg:py-32">
+          <div className="container px-4 md:px-6">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center">
+              <div className="space-y-2">
+                <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm">Planos e Preços</div>
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
+                  Encontre o plano perfeito para sua clínica
+                </h2>
+                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                  Oferecemos uma variedade de planos para atender às suas necessidades, desde clínicas pequenas até grandes hospitais.
+                </p>
+              </div>
+            </div>
+            <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:grid-cols-3 pt-12">
+              <Card className="bg-background">
+                <CardHeader className="gap-3">
+                  <CardTitle className="font-headline">Básico</CardTitle>
+                  <CardDescription>
+                    Para clínicas que estão começando.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="text-4xl font-bold">R$99<span className="text-lg font-normal">/mês</span></div>
+                  <ul className="space-y-2">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                      <span>Até 5 usuários</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                      <span>Agenda e Prontuários</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                      <span>Faturamento Básico</span>
+                    </li>
+                  </ul>
+                  <Button asChild>
+                    <Link href="/auth/signup" prefetch={false}>
+                      Começar
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card className="bg-background border-primary">
+                <CardHeader className="gap-3">
+                  <CardTitle className="font-headline">Premium</CardTitle>
+                  <CardDescription>
+                    Para clínicas em crescimento.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="text-4xl font-bold">R$199<span className="text-lg font-normal">/mês</span></div>
+                  <ul className="space-y-2">
+                  <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                      <span>Até 20 usuários</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                      <span>Recursos do plano Básico</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                      <span>Assistente com IA</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                      <span>Relatórios Avançados</span>
+                    </li>
+                  </ul>
+                  <Button asChild>
+                    <Link href="/auth/signup" prefetch={false}>
+                      Iniciar Teste Gratuito
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card className="bg-background">
+                <CardHeader className="gap-3">
+                  <CardTitle className="font-headline">Enterprise</CardTitle>
+                  <CardDescription>
+                    Para grandes hospitais e redes.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="text-4xl font-bold">Personalizado</div>
+                  <ul className="space-y-2">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                      <span>Usuários ilimitados</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                      <span>Recursos do plano Premium</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                      <span>Suporte Dedicado</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                      <span>Integrações Customizadas</span>
+                    </li>
+                  </ul>
+                  <Button asChild variant="outline">
+                    <Link href="#" prefetch={false}>
+                      Entre em Contato
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
         <p className="text-xs text-muted-foreground">&copy; 2024 MediCorex. Todos os direitos reservados.</p>
