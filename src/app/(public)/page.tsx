@@ -15,7 +15,7 @@ export default function Home() {
       <header className="px-4 lg:px-6 h-16 flex items-center border-b">
         <Link href="#" className="flex items-center justify-center gap-2" prefetch={false}>
           <Logo className="h-6 w-6 text-primary" />
-          <span className="text-lg font-semibold font-headline">TenantFlow</span>
+          <span className="text-lg font-semibold font-headline">MediCorex</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6">
           <Button variant="ghost" asChild>
@@ -38,17 +38,22 @@ export default function Home() {
               <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-2">
                   <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline text-primary">
-                    Desbloqueie Insights Específicos com TenantFlow
+                    Desbloqueie Insights Específicos com MediCorex
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                    Nossa poderosa plataforma multitenant oferece ambientes seguros e isolados e análises orientadas por IA para entender melhor seus clientes.
+                    Nossa poderosa plataforma multitenant oferece ambientes seguros e isolados e análises orientadas por IA para entender melhor seus pacientes.
                   </p>
                   <p className="max-w-[600px] text-sm text-muted-foreground pt-4">
-                    Para acessar seu espaço de trabalho, use seu subdomínio atribuído (ex: <code className="bg-muted px-1 py-0.5 rounded-sm">acme.localhost:9002</code>).
+                    Para acessar seu espaço de trabalho, use seu subdomínio atribuído (ex: <code className="bg-muted px-1 py-0.5 rounded-sm">sua-clinica.localhost:9002</code>).
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
                   <Button asChild size="lg">
+                    <Link href="/auth/signup" prefetch={false}>
+                      Iniciar Teste Gratuito de 7 Dias
+                    </Link>
+                  </Button>
+                   <Button asChild size="lg" variant="outline">
                     <Link href="https://acme.localhost:9002" prefetch={false}>
                       Ver Tenant de Demonstração
                     </Link>
@@ -78,7 +83,7 @@ export default function Home() {
                   Construído para Multitenancy Segura e Escalável
                 </h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  O TenantFlow é projetado desde o início para fornecer isolamento robusto de dados, IA consciente do tenant e uma experiência de usuário perfeita.
+                  O MediCorex é projetado desde o início para fornecer isolamento robusto de dados, IA consciente do tenant e uma experiência de usuário perfeita.
                 </p>
               </div>
             </div>
@@ -118,7 +123,7 @@ export default function Home() {
                 </CardHeader>
                 <CardContent>
                   <CardDescription>
-                    Utilize fluxos Genkit para gerar insights poderosos sobre os clientes. Nossa IA é consciente do tenant, garantindo que todos os dados gerados sejam relevantes e seguros.
+                    Utilize fluxos Genkit para gerar insights poderosos sobre os pacientes. Nossa IA é consciente do tenant, garantindo que todos os dados gerados sejam relevantes e seguros.
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -127,7 +132,7 @@ export default function Home() {
         </section>
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-muted-foreground">&copy; 2024 TenantFlow. Todos os direitos reservados.</p>
+        <p className="text-xs text-muted-foreground">&copy; 2024 MediCorex. Todos os direitos reservados.</p>
       </footer>
     </div>
   );

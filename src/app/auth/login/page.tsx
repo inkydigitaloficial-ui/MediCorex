@@ -25,7 +25,7 @@ function SubmitButton() {
 }
 
 export default function LoginPage() {
-  const [state, formAction] = useFormState(loginAction, { error: null, success: false });
+  const [state, formAction] = useFormState(loginAction, { error: null, success: false, tenantSlug: null });
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const auth = useAuth();
@@ -41,15 +41,17 @@ export default function LoginPage() {
         description: state.error,
       });
     }
-    if (state.success) {
+    if (state.success && state.tenantSlug) {
       // Server-side validation passed, now attempt client-side sign-in
       signInWithEmailAndPassword(auth, email, password)
         .then(() => {
           toast({
             title: 'Login bem-sucedido!',
-            description: 'Você será redirecionado para seu painel. Use o subdomínio da sua clínica para acessar.',
+            description: 'Redirecionando para seu painel...',
           });
-          // We don't redirect here. User should know their subdomain.
+          const protocol = window.location.protocol;
+          const host = window.location.host.split('.').slice(-2).join('.'); // Get root domain e.g., localhost:9002
+          window.location.href = `${protocol}//${state.tenantSlug}.${host}`;
         })
         .catch((error) => {
           toast({
@@ -65,7 +67,7 @@ export default function LoginPage() {
     if (searchParams.get('signup') === 'success') {
       toast({
         title: 'Cadastro realizado!',
-        description: 'Faça login para continuar.',
+        description: 'Sua clínica foi criada. Faça login para acessá-la.',
       });
     }
   }, [searchParams, toast]);
@@ -75,7 +77,7 @@ export default function LoginPage() {
       <CardHeader className="space-y-1 text-center">
         <CardTitle className="text-2xl font-headline">Login</CardTitle>
         <CardDescription>
-          Acesse sua conta. Lembre-se de usar seu subdomínio para acessar a clínica.
+          Acesse sua conta para gerenciar sua clínica.
         </CardDescription>
       </CardHeader>
       <form action={formAction}>
@@ -109,7 +111,7 @@ export default function LoginPage() {
           <p className="text-xs text-muted-foreground text-center">
             Não tem uma conta?{' '}
             <Link href="/auth/signup" className="underline hover:text-primary">
-              Cadastre-se
+              Cadastre-se e crie sua clínica
             </Link>
           </p>
         </CardFooter>

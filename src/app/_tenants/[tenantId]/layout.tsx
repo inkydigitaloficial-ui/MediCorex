@@ -21,7 +21,7 @@ import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { differenceInDays } from 'date-fns';
 
 type Props = {
@@ -32,7 +32,7 @@ type Props = {
 function TrialBanner({ trialEnds }: { trialEnds: Date }) {
   const daysLeft = differenceInDays(trialEnds, new Date());
 
-  if (daysLeft < 0) return null;
+  if (daysLeft < 0) return null; // Não mostra se o trial já acabou
 
   return (
     <div className='px-4 pt-4'>
@@ -58,12 +58,27 @@ export default async function TenantLayout({ children, params }: Props) {
 
     const trialEndsDate = tenantData.trialEnds?.toDate();
 
-    // 🚨 VALIDAÇÃO DE ASSINATURA (Exemplo): Se o plano expirou, redireciona
+    // 🚨 VALIDAÇÃO DE ASSINATURA: Se o plano é trial e a data de teste já passou
     if (tenantData.subscriptionStatus === 'trialing' && trialEndsDate && new Date() > trialEndsDate) {
        console.warn(`Trial expired for tenant: ${tenantId}`);
        // Em uma app real, redirecionaria para uma página de cobrança
-       // Ex: redirect(`/billing?tenant=${tenantId}`);
-       notFound();
+       // redirect(`https://${tenantId}.localhost:9002/escolha-seu-plano`);
+       return (
+        <div className="flex h-screen flex-col items-center justify-center bg-background p-4">
+            <div className="mx-auto max-w-md text-center">
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle className='font-headline'>Período de Teste Expirado</AlertTitle>
+                <AlertDescription>
+                  Seu período de teste de 7 dias terminou. Por favor, escolha um plano para continuar usando o MediCorex.
+                </AlertDescription>
+              </Alert>
+              <Button asChild className='mt-4'>
+                <Link href="/escolha-seu-plano">Ver Planos</Link>
+              </Button>
+            </div>
+        </div>
+       );
     }
 
     return (

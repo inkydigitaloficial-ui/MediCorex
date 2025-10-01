@@ -34,12 +34,19 @@ const loginSchema = z.object({
 });
 
 
-type FormState = {
+type SignupFormState = {
   error: string | null;
   success: boolean;
 };
 
-export async function signupAction(prevState: FormState, formData: FormData): Promise<FormState> {
+type LoginFormState = {
+    error: string | null;
+    success: boolean;
+    tenantSlug?: string | null; // Adicionado para redirecionamento
+};
+
+
+export async function signupAction(prevState: SignupFormState, formData: FormData): Promise<SignupFormState> {
   const rawFormData = Object.fromEntries(formData.entries());
   const validatedFields = signupSchema.safeParse(rawFormData);
 
@@ -104,7 +111,7 @@ export async function signupAction(prevState: FormState, formData: FormData): Pr
     const host = process.env.ROOT_DOMAIN || 'localhost:9002';
     
     // Redirect to the new tenant's subdomain
-    redirect(`${protocol}://${tenantSlug}.${host}`);
+    redirect(`${protocol}://${tenantSlug}.${host}/auth/login?signup=success`);
 
   } catch (error: any) {
     console.error('Erro no cadastro:', error);
@@ -116,7 +123,7 @@ export async function signupAction(prevState: FormState, formData: FormData): Pr
 }
 
 
-export async function loginAction(prevState: FormState, formData: FormData): Promise<FormState> {
+export async function loginAction(prevState: LoginFormState, formData: FormData): Promise<LoginFormState> {
     const rawFormData = Object.fromEntries(formData.entries());
     const validatedFields = loginSchema.safeParse(rawFormData);
 
@@ -127,8 +134,9 @@ export async function loginAction(prevState: FormState, formData: FormData): Pro
     
     const { email } = validatedFields.data;
 
+    let userRecord;
     try {
-        await adminAuth.getUserByEmail(email);
+        userRecord = await adminAuth.getUserByEmail(email);
     } catch (error: any) {
         if (error.code === 'auth/user-not-found') {
             return { error: 'Nenhum usuário encontrado com este email.', success: false };
@@ -136,8 +144,16 @@ export async function loginAction(prevState: FormState, formData: FormData): Pro
         return { error: 'Credenciais inválidas. Verifique seu email e senha.', success: false };
     }
     
-    // On success, we just confirm credentials are valid.
-    // The client should handle the actual sign-in and direct the user to their subdomain.
-    return { success: true, error: null };
-}
+    // Find the first tenant the user belongs to
+    const tenantUsersSnapshot = await db.collection('tenant_users').where('userId', '==', userRecord.uid).limit(1).get();
 
+    if (tenantUsersSnapshot.empty) {
+        // User exists but is not associated with any tenant
+        return { error: 'Você não está associado a nenhuma clínica. Por favor, cadastre-se para criar uma.', success: false };
+    }
+
+    const firstTenant = tenantUsersSnapshot.docs[0].data();
+
+    // On success, return the tenant slug so the client can redirect
+    return { success: true, error: null, tenantSlug: firstTenant.tenantId };
+}

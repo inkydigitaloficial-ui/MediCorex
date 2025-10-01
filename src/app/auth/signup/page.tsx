@@ -16,7 +16,7 @@ function SubmitButton() {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" className="w-full" disabled={pending}>
-      {pending ? 'Criando conta...' : 'Criar Conta'}
+      {pending ? 'Criando sua clínica...' : 'Criar Conta e Iniciar Teste'}
     </Button>
   );
 }
@@ -38,19 +38,19 @@ export default function SignupPage() {
   return (
     <Card>
       <CardHeader className="space-y-1 text-center">
-        <CardTitle className="text-2xl font-headline">Crie sua Conta</CardTitle>
+        <CardTitle className="text-2xl font-headline">Crie sua Conta na MediCorex</CardTitle>
         <CardDescription>
-          Preencha os campos para começar
+          Comece agora com 7 dias de teste gratuito do nosso plano Premium.
         </CardDescription>
       </CardHeader>
       <form action={formAction}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Nome completo</Label>
-            <Input id="name" name="name" type="text" placeholder="Seu Nome" required />
+            <Label htmlFor="name">Seu Nome Completo</Label>
+            <Input id="name" name="name" type="text" placeholder="Nome do responsável" required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Seu Melhor Email</Label>
             <Input id="email" name="email" type="email" placeholder="seu@email.com" required />
           </div>
           <div className="space-y-2">
@@ -58,7 +58,7 @@ export default function SignupPage() {
             <Input id="phone" name="phone" type="tel" placeholder="(99) 99999-9999" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Senha</Label>
+            <Label htmlFor="password">Crie uma Senha</Label>
             <Input id="password" name="password" type="password" required minLength={6} />
           </div>
         </CardContent>
