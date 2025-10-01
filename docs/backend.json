@@ -3,14 +3,16 @@
     "Tenant": {
       "title": "Tenant",
       "type": "object",
-      "description": "Represents a tenant in the multi-tenant system.",
+      "description": "Representa um tenant (clínica) no sistema multilocatário.",
       "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the Tenant entity (matches document ID)." },
-        "name": { "type": "string", "description": "Name of the tenant." },
-        "slug": { "type": "string", "description": "The subdomain slug for the tenant." },
-        "active": { "type": "boolean", "description": "Whether the tenant is active." },
-        "plan": { "type": "string", "enum": ["free", "pro", "enterprise", "trial"], "description": "Subscription plan." },
-        "trialEnds": { "type": "string", "format": "date-time", "description": "Timestamp for trial expiration." },
+        "name": { "type": "string", "description": "Nome da clínica/tenant." },
+        "slug": { "type": "string", "description": "O subdomínio para o tenant." },
+        "ownerId": { "type": "string", "description": "UID do usuário proprietário." },
+        "active": { "type": "boolean", "description": "Se o tenant está ativo." },
+        "plan": { "type": "string", "enum": ["trial", "basico", "essencial", "premium"], "description": "Plano de assinatura atual." },
+        "subscriptionStatus": { "type": "string", "enum": ["trialing", "active", "past_due", "canceled", "unpaid"], "description": "Status da assinatura no Stripe." },
+        "trialEnds": { "type": "string", "format": "date-time", "description": "Timestamp de quando o período de teste termina." },
+        "stripeCustomerId": { "type": "string", "description": "ID do cliente no gateway de pagamento (Stripe)." },
         "settings": {
           "type": "object",
           "properties": {
@@ -21,24 +23,24 @@
         },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "name", "slug", "active", "plan"]
+      "required": ["name", "slug", "ownerId", "active", "plan", "subscriptionStatus"]
     },
     "UserProfile": {
         "title": "User Profile",
-        "description": "Represents a user's profile information.",
+        "description": "Representa as informações de perfil de um usuário.",
         "type": "object",
         "properties": {
-            "uid": { "type": "string", "description": "The user's unique ID from Firebase Authentication." },
-            "name": { "type": "string", "description": "The user's full name." },
-            "email": { "type": "string", "format": "email", "description": "The user's email address." },
-            "phone": { "type": "string", "description": "The user's phone number (optional)." }
+            "uid": { "type": "string", "description": "O UID do Firebase Auth." },
+            "name": { "type": "string", "description": "Nome completo do usuário." },
+            "email": { "type": "string", "format": "email", "description": "Email do usuário." },
+            "phone": { "type": "string", "description": "Telefone do usuário (opcional)." }
         },
         "required": ["uid", "name", "email"]
     },
     "TenantUser": {
       "title": "TenantUser",
       "type": "object",
-      "description": "Represents a user's association and role within a tenant.",
+      "description": "Representa a associação e o papel de um usuário dentro de um tenant.",
       "properties": {
         "tenantId": { "type": "string" },
         "userId": { "type": "string" },
@@ -53,8 +55,10 @@
       "title": "Paciente",
       "type": "object",
       "properties": {
-        "name": { "type": "string" }
-      }
+        "nome": { "type": "string" },
+        "email": { "type": "string", "format": "email" }
+      },
+       "required": ["nome", "email"]
     },
     "Consulta": {
       "title": "Consulta",
@@ -86,31 +90,23 @@
   "firestore": {
     "tenants/{tenantId}": {
       "schema": { "$ref": "#/entities/Tenant" },
-      "description": "Main collection for tenant data."
+      "description": "Coleção principal para os dados do tenant (clínica)."
     },
     "tenants/{tenantId}/pacientes/{pacienteId}": {
       "schema": { "$ref": "#/entities/Paciente" },
-      "description": "Sub-collection for tenant-specific customers."
+      "description": "Subcoleção para os pacientes específicos de um tenant."
     },
     "tenants/{tenantId}/consultas/{consultaId}": {
       "schema": { "$ref": "#/entities/Consulta" },
-      "description": "Sub-collection for tenant-specific appointments."
-    },
-    "tenants/{tenantId}/products/{productId}": {
-      "schema": { "$ref": "#/entities/Product" },
-      "description": "Sub-collection for tenant-specific products."
-    },
-    "tenants/{tenantId}/ai_generations/{generationId}": {
-      "schema": { "$ref": "#/entities/AIGeneration" },
-      "description": "Sub-collection for tenant-specific AI generations history."
+      "description": "Subcoleção para os agendamentos de um tenant."
     },
     "tenant_users/{docId}": {
       "schema": { "$ref": "#/entities/TenantUser" },
-      "description": "Collection for user-tenant mappings for performance."
+      "description": "Coleção para mapeamento de usuário-tenant para performance e segurança."
     },
     "users/{userId}": {
         "schema": { "$ref": "#/entities/UserProfile" },
-        "description": "Collection to store user profile information."
+        "description": "Coleção para armazenar informações de perfil dos usuários."
     }
   }
 }
