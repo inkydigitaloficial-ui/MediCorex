@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { loginAction } from '../actions';
 import { useSearchParams } from 'next/navigation';
-import { useAuth } from '@/firebase'; // Import useAuth hook
+import { useAuth } from '@/firebase';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -32,8 +32,10 @@ export default function LoginPage() {
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isClientSigningIn, setIsClientSigningIn] = useState(false);
 
   useEffect(() => {
+    // Se a ação do servidor falhou, exibe o erro específico que ela retornou.
     if (state.error) {
       toast({
         variant: 'destructive',
@@ -41,8 +43,10 @@ export default function LoginPage() {
         description: state.error,
       });
     }
-    if (state.success && state.tenantSlug) {
-      // Server-side validation passed, now attempt client-side sign-in
+
+    // Se a ação do servidor teve sucesso, então prosseguimos para o login no cliente.
+    if (state.success && state.tenantSlug && auth) {
+      setIsClientSigningIn(true);
       signInWithEmailAndPassword(auth, email, password)
         .then(() => {
           toast({
@@ -50,15 +54,24 @@ export default function LoginPage() {
             description: 'Redirecionando para seu painel...',
           });
           const protocol = window.location.protocol;
-          const host = window.location.host.split('.').slice(-2).join('.'); // Get root domain e.g., localhost:9002
-          window.location.href = `${protocol}//${state.tenantSlug}.${host}`;
+          const host = window.location.host.includes('localhost')
+            ? 'localhost:9002' // Garante a porta correta em dev
+            : window.location.host;
+          
+          const rootDomain = host.split('.').slice(-2).join('.');
+          
+          window.location.href = `${protocol}//${state.tenantSlug}.${rootDomain}`;
         })
-        .catch((error) => {
+        .catch(() => {
+          // Este erro só deve acontecer se a senha estiver errada, já que o email foi validado no servidor.
           toast({
             variant: 'destructive',
             title: 'Erro no Login',
             description: 'Credenciais inválidas. Verifique seu email e senha.',
           });
+        })
+        .finally(() => {
+            setIsClientSigningIn(false);
         });
     }
   }, [state, auth, email, password, toast]);
@@ -67,10 +80,14 @@ export default function LoginPage() {
     if (searchParams.get('signup') === 'success') {
       toast({
         title: 'Cadastro realizado!',
-        description: 'Sua clínica foi criada. Faça login para acessá-la.',
+        description: 'Sua clínica está sendo criada. Aguarde um instante e faça login.',
+        duration: 5000,
       });
     }
   }, [searchParams, toast]);
+
+  const { pending } = useFormStatus();
+  const isDisabled = pending || isClientSigningIn;
 
   return (
     <Card>
@@ -92,6 +109,7 @@ export default function LoginPage() {
               required 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={isDisabled}
             />
           </div>
           <div className="space-y-2">
@@ -103,6 +121,7 @@ export default function LoginPage() {
               required 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              disabled={isDisabled}
             />
           </div>
         </CardContent>

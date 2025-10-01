@@ -13,8 +13,8 @@ function initializeAdminApp(): App {
     if (apps.length > 0) {
         return apps[0];
     }
-    // This will not work in local dev without credentials.
-    // The logic is being simplified to remove this dependency for now.
+    // Esta inicialização é um fallback e pode depender de credenciais de ambiente.
+    // A Cloud Function terá as credenciais automaticamente. O dev local pode precisar delas.
     return initializeApp();
 }
 
@@ -30,7 +30,7 @@ type LoginFormState = {
 };
 
 
-// The signupAction is no longer used and is being removed.
+// The signupAction is no longer used.
 // The signup logic is now handled on the client-side in /auth/signup/page.tsx
 // and a Cloud Function handles tenant creation.
 
@@ -59,21 +59,27 @@ export async function loginAction(prevState: LoginFormState, formData: FormData)
 
     let userRecord;
     try {
+        // A senha não é validada aqui, apenas a existência do usuário pelo email.
+        // A validação da senha é feita no cliente com signInWithEmailAndPassword.
         userRecord = await adminAuth.getUserByEmail(email);
     } catch (error: any) {
         if (error.code === 'auth/user-not-found') {
             return { error: 'Nenhum usuário encontrado com este email.', success: false };
         }
+        console.error("Erro ao buscar usuário:", error);
         return { error: 'Credenciais inválidas. Verifique seu email e senha.', success: false };
     }
     
+    // Procura o tenant associado ao usuário.
     const tenantUsersSnapshot = await db.collection('tenant_users').where('userId', '==', userRecord.uid).limit(1).get();
 
     if (tenantUsersSnapshot.empty) {
+        // A Cloud Function pode ainda não ter terminado de criar o tenant.
         return { error: 'Sua clínica ainda está sendo preparada. Tente novamente em alguns instantes.', success: false };
     }
 
     const firstTenant = tenantUsersSnapshot.docs[0].data();
 
+    // Retorna sucesso e o slug do tenant para o cliente fazer o login e redirecionar.
     return { success: true, error: null, tenantSlug: firstTenant.tenantId };
 }
