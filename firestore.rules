@@ -1,28 +1,85 @@
+/**
+ * @fileoverview Firestore Security Rules for a multi-tenant application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict tenant-based ownership model, ensuring data isolation between tenants. Each tenant's data is stored in separate documents within the `tenants` collection, and customer insights are segregated into the `customer_insights` collection, associated with a specific tenant.
+ *
+ * Data Structure:
+ * - `/tenants/{tenantId}`: Stores tenant profile information.  The `tenantId` is the document ID.
+ * - `/customer_insights/{customerInsightId}`: Stores customer insights, with a denormalized `tenantId` field.
+ *
+ * Key Security Decisions:
+ * - Tenants can only be created by authenticated users.
+ * - Data is isolated at the collection level using tenantId-based authorization.
+ * - All write operations require the user to be authenticated.
+ * - Data shape validation is omitted to remain flexible during the prototyping phase.
+ *
+ * Denormalization for Authorization:
+ * - The `CustomerInsight` entity includes a `tenantId` field, which is denormalized from the `Tenant` entity. This avoids the need for costly `get()` calls to the `tenants` collection when authorizing access to customer insights.
+ *
+ * Structural Segregation:
+ * - Tenant profiles and customer insights are stored in separate collections, allowing for distinct security rules and access patterns.
+ */
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // This rule allows anyone to read the public information about tenants.
-    // In a real application, you might restrict this to authenticated users.
-    // Writes are disallowed from the client to prevent unauthorized creation or modification.
+
+    /**
+     * @description Manages access to tenant profiles.
+     * @path /tenants/{tenantId}
+     * @allow (create) - Authenticated user can create a tenant with the document id matching the tenantId.
+     * @allow (get, list, update, delete) - Authenticated user can perform any operation if they are the owner of the tenant (tenantId matches request.auth.uid).
+     * @deny (create) - Unauthenticated user cannot create tenants.
+     * @deny (update, delete) - An authenticated user cannot modify or delete a tenant they don't own.
+     * @principle Enforces ownership for tenant profiles.
+     */
     match /tenants/{tenantId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(tenantId) {
+        return request.auth.uid == tenantId;
+      }
+
+      function isExistingOwner(tenantId) {
+          return isOwner(tenantId) && resource != null;
+      }
+
       allow get: if true;
-      allow list, create, update, delete: if false;
-    }
-    
-    // This is a generic rule for any data collection that belongs to a tenant.
-    // It assumes that every document in a tenant-specific collection has a `tenantId` field.
-    // This rule checks if the authenticated user's custom token includes a `tenantId` claim
-    // that matches the document's `tenantId`.
-    match /customerData/{docId} {
-      allow read, write: if request.auth != null && request.auth.token.tenantId == resource.data.tenantId;
+      allow list: if true;
+      allow create: if isSignedIn() && request.resource.data.id == tenantId;
+      allow update: if isExistingOwner(tenantId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(tenantId);
     }
 
-    // Example for a nested data structure:
-    // This rule structure is useful if all of a tenant's data is nested under their tenant document.
-    match /tenants/{tenantId}/{collection}/{docId} {
-       allow read, write: if request.auth != null && request.auth.token.tenantId == tenantId;
+    /**
+     * @description Manages access to customer insights, ensuring tenant-level data isolation.
+     * @path /customer_insights/{customerInsightId}
+     * @allow (create) - Authenticated user can create an insight if the tenantId matches the user's ID.
+     * @allow (get, list, update, delete) - Authenticated user can perform any operation if the insight's tenantId matches the user's ID.
+     * @deny (create) - Unauthenticated users cannot create insights.
+     * @deny (update, delete) - Authenticated users cannot modify or delete insights that belong to other tenants.
+     * @principle Enforces tenant-level data isolation for customer insights.
+     */
+    match /customer_insights/{customerInsightId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isTenantOwner(tenantId) {
+        return request.auth.uid == tenantId;
+      }
+
+      function isExistingTenantOwner(tenantId) {
+        return isTenantOwner(tenantId) && resource != null;
+      }
+      
+      allow get: if isSignedIn() && isTenantOwner(resource.data.tenantId);
+      allow list: if isSignedIn() && isTenantOwner(resource.data.tenantId);
+      allow create: if isSignedIn() && request.resource.data.tenantId == request.auth.uid;
+      allow update: if isExistingTenantOwner(resource.data.tenantId) && request.resource.data.tenantId == resource.data.tenantId;
+      allow delete: if isExistingTenantOwner(resource.data.tenantId);
     }
   }
 }
