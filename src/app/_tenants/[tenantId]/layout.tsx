@@ -47,7 +47,7 @@ export default async function TenantLayout({ children, params }: Props) {
     }
 
     return (
-      <TenantProvider initialData={{ tenantId, ...tenantData }}>
+      <TenantProvider initialData={{ id: tenantId, ...tenantData }}>
         <SidebarProvider>
           <Sidebar>
             <SidebarHeader>
@@ -125,9 +125,7 @@ export default async function TenantLayout({ children, params }: Props) {
                 {/* O título pode ser dinâmico com base na página */}
               </div>
             </header>
-            <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background p-4 lg:p-6">
               {children}
-            </main>
           </SidebarInset>
         </SidebarProvider>
       </TenantProvider>
