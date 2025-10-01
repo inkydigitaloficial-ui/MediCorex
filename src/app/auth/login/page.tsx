@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
-import { useEffect, useState } from 'react';
+import { useFormStatus } from 'react-dom';
+import { useEffect, useState, useActionState } from 'react';
 import Link from 'next/link';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 
@@ -25,7 +25,7 @@ function SubmitButton() {
 }
 
 export default function LoginPage() {
-  const [state, formAction] = useFormState(loginAction, { error: null, success: false, tenantSlug: null });
+  const [state, formAction] = useActionState(loginAction, { error: null, success: false, tenantSlug: null });
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const auth = useAuth();
