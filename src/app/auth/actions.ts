@@ -58,12 +58,18 @@ export async function signupAction(prevState: SignupFormState, formData: FormDat
   const { name, email, password, phone } = validatedFields.data;
 
   try {
-    const userRecord = await adminAuth.createUser({
+    const userPayload: any = {
       email,
       password,
       displayName: name,
-      phoneNumber: phone,
-    });
+    };
+
+    // Only add phoneNumber if it's a non-empty string
+    if (phone) {
+      userPayload.phoneNumber = phone;
+    }
+
+    const userRecord = await adminAuth.createUser(userPayload);
 
     const userProfile = {
         uid: userRecord.uid,
@@ -110,13 +116,16 @@ export async function signupAction(prevState: SignupFormState, formData: FormDat
     const protocol = process.env.NODE_ENV === 'development' ? 'https' : 'https';
     const host = process.env.ROOT_DOMAIN || 'localhost:9002';
     
-    // Redirect to the new tenant's subdomain
+    // Redirect to the new tenant's subdomain's login page
     redirect(`${protocol}://${tenantSlug}.${host}/auth/login?signup=success`);
 
   } catch (error: any) {
     console.error('Erro no cadastro:', error);
     if (error.code === 'auth/email-already-exists') {
         return { error: 'Este email já está em uso.', success: false };
+    }
+    if (error.code === 'auth/invalid-phone-number') {
+        return { error: 'O número de telefone fornecido não é válido. Verifique o formato ou deixe o campo em branco.', success: false };
     }
     return { error: error.message || 'Ocorreu um erro desconhecido.', success: false };
   }

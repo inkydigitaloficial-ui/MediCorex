@@ -59,7 +59,7 @@ export default function SignupPage() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Crie uma Senha</Label>
-            <Input id="password" name="password" type="password" required minLength={6} />
+            <Input id="password" name="password" type="password" required minLength={6} placeholder="Mínimo 6 caracteres" />
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
