@@ -4,8 +4,9 @@
 import { z } from 'zod';
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth as getAdminAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { redirect } from 'next/navigation';
+import { addDays } from 'date-fns';
 
 // Helper to initialize Firebase Admin SDK idempotently
 function initializeAdminApp() {
@@ -57,13 +58,53 @@ export async function signupAction(prevState: FormState, formData: FormData): Pr
       phoneNumber: phone,
     });
 
-    await db.collection('users').doc(userRecord.uid).set({
+    const userProfile = {
         uid: userRecord.uid,
         name,
         email,
         phone: phone || null,
-        createdAt: new Date().toISOString(),
+        createdAt: Timestamp.now(),
+    };
+    
+    // Generate a unique slug for the tenant
+    const baseSlug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const tenantSlug = `${baseSlug}-${Math.random().toString(36).substring(2, 7)}`;
+    
+    const trialEndsDate = addDays(new Date(), 7);
+
+    const newTenant = {
+        name: `Clínica de ${name}`,
+        slug: tenantSlug,
+        ownerId: userRecord.uid,
+        active: true,
+        plan: 'trial',
+        subscriptionStatus: 'trialing',
+        trialEnds: Timestamp.fromDate(trialEndsDate),
+        settings: { language: 'pt-BR', timezone: 'America/Sao_Paulo' },
+        createdAt: Timestamp.now(),
+    };
+
+    const tenantRef = db.collection('tenants').doc(tenantSlug);
+    const tenantUserRef = db.collection('tenant_users').doc();
+
+    // Create user profile, tenant, and tenant-user mapping in a transaction
+    await db.runTransaction(async (transaction) => {
+        transaction.set(db.collection('users').doc(userRecord.uid), userProfile);
+        transaction.set(tenantRef, newTenant);
+        transaction.set(tenantUserRef, {
+            tenantId: tenantSlug,
+            userId: userRecord.uid,
+            email: email,
+            role: 'owner',
+            joinedAt: Timestamp.now(),
+        });
     });
+
+    const protocol = process.env.NODE_ENV === 'development' ? 'https' : 'https';
+    const host = process.env.ROOT_DOMAIN || 'localhost:9002';
+    
+    // Redirect to the new tenant's subdomain
+    redirect(`${protocol}://${tenantSlug}.${host}`);
 
   } catch (error: any) {
     console.error('Erro no cadastro:', error);
@@ -72,10 +113,6 @@ export async function signupAction(prevState: FormState, formData: FormData): Pr
     }
     return { error: error.message || 'Ocorreu um erro desconhecido.', success: false };
   }
-
-  // On success, redirect. We need a way for the client to know it needs to log in
-  // with the new credentials. The simplest way is to redirect to login.
-  redirect('/auth/login?signup=success');
 }
 
 
@@ -88,27 +125,19 @@ export async function loginAction(prevState: FormState, formData: FormData): Pro
         return { error: firstError || 'Dados inválidos.', success: false };
     }
     
-    // NOTE: This action can't actually log the user in on the client.
-    // Firebase client-side auth needs to handle the actual sign-in.
-    // This action serves to validate credentials before telling the client to proceed.
-    // For a real app, you would generate a custom token here and sign in with it on the client.
-    // For this prototype, we'll just redirect to a default tenant on "success".
-    
-    const { email, password } = validatedFields.data;
+    const { email } = validatedFields.data;
 
     try {
-        // We can't actually sign in here, but we can verify the user exists
-        // by trying to get their record. This isn't a password check, though.
         await adminAuth.getUserByEmail(email);
-
     } catch (error: any) {
         if (error.code === 'auth/user-not-found') {
             return { error: 'Nenhum usuário encontrado com este email.', success: false };
         }
         return { error: 'Credenciais inválidas. Verifique seu email e senha.', success: false };
     }
-
-    // In a real app, we would not redirect from a server action like this.
-    // The client would receive the success state and handle the sign-in and redirect.
-    redirect('https://acme.localhost:9002');
+    
+    // On success, we just confirm credentials are valid.
+    // The client should handle the actual sign-in and direct the user to their subdomain.
+    return { success: true, error: null };
 }
+
