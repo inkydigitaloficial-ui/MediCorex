@@ -23,6 +23,18 @@
       },
       "required": ["id", "name", "slug", "active", "plan"]
     },
+    "UserProfile": {
+        "title": "User Profile",
+        "description": "Represents a user's profile information.",
+        "type": "object",
+        "properties": {
+            "uid": { "type": "string", "description": "The user's unique ID from Firebase Authentication." },
+            "name": { "type": "string", "description": "The user's full name." },
+            "email": { "type": "string", "format": "email", "description": "The user's email address." },
+            "phone": { "type": "string", "description": "The user's phone number (optional)." }
+        },
+        "required": ["uid", "name", "email"]
+    },
     "TenantUser": {
       "title": "TenantUser",
       "type": "object",
@@ -37,8 +49,8 @@
       },
       "required": ["tenantId", "userId", "email", "role"]
     },
-    "Customer": {
-      "title": "Customer",
+    "Paciente": {
+      "title": "Paciente",
       "type": "object",
       "properties": {
         "name": { "type": "string" }
@@ -68,8 +80,8 @@
       "schema": { "$ref": "#/entities/Tenant" },
       "description": "Main collection for tenant data."
     },
-    "tenants/{tenantId}/customers/{customerId}": {
-      "schema": { "$ref": "#/entities/Customer" },
+    "tenants/{tenantId}/pacientes/{pacienteId}": {
+      "schema": { "$ref": "#/entities/Paciente" },
       "description": "Sub-collection for tenant-specific customers."
     },
     "tenants/{tenantId}/products/{productId}": {
@@ -83,6 +95,10 @@
     "tenant_users/{docId}": {
       "schema": { "$ref": "#/entities/TenantUser" },
       "description": "Collection for user-tenant mappings for performance."
+    },
+    "users/{userId}": {
+        "schema": { "$ref": "#/entities/UserProfile" },
+        "description": "Collection to store user profile information."
     }
   }
 }

@@ -23,6 +23,11 @@ export default function Home() {
             </Link>
           </Button>
           <Button variant="ghost" asChild>
+            <Link href="/auth/login" prefetch={false}>
+              Login
+            </Link>
+          </Button>
+          <Button asChild>
             <Link href="https://acme.localhost:9002" prefetch={false}>
               Demo
               <ArrowRight className="ml-2 h-4 w-4" />
