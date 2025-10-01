@@ -1,4 +1,3 @@
-import { InsightsGenerator } from './components/insights-generator';
 
 export default function TenantPage() {
   return (
