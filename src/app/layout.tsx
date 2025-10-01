@@ -9,8 +9,8 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-body' });
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-headline' });
 
 export const metadata: Metadata = {
-  title: 'TenantFlow',
-  description: 'Multitenant system with Genkit-powered customer insights.',
+  title: 'MediCorex - Sistema de Gestão para Clínicas',
+  description: 'Otimize a gestão da sua clínica com prontuários inteligentes, agenda e IA.',
 };
 
 export default function RootLayout({
@@ -19,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
