@@ -1,16 +1,66 @@
-"use client";
+'use client';
 
-import { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 
-type TenantContextType = {
+interface TenantContextType {
   tenantId: string;
-};
+  tenantData: any | null; // Consider defining a strong type for tenant data
+  loading: boolean;
+  error: Error | null;
+}
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
 
-export function TenantProvider({ children, tenantId }: { children: ReactNode; tenantId: string }) {
+export function TenantProvider({ 
+  children, 
+  value 
+}: { 
+  children: ReactNode;
+  value: { tenantId: string; tenantData: any };
+}) {
+  const firestore = useFirestore(); // Use the hook to get the firestore instance
+  const [tenantData, setTenantData] = useState(value.tenantData);
+  const [loading, setLoading] = useState(!value.tenantData); // Initial loading state
+  const [error, setError] = useState<Error | null>(null);
+
+  // Real-time listener for tenant data updates
+  useEffect(() => {
+    // No need to run if firestore is not available yet, though the layout ensures it is.
+    if (!firestore) return;
+
+    setLoading(true);
+    const unsubscribe = onSnapshot(
+      doc(firestore, 'tenants', value.tenantId),
+      (snapshot) => {
+        if (snapshot.exists()) {
+          setTenantData({ id: snapshot.id, ...snapshot.data() });
+        } else {
+          // This case might happen if the tenant is deleted while the user is on the page
+          setError(new Error(`Tenant with ID ${value.tenantId} no longer exists.`));
+        }
+        setLoading(false);
+      },
+      (err) => {
+        console.error('Error in tenant listener:', err);
+        setError(err as Error);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [value.tenantId, firestore]);
+
+  const contextValue = {
+    tenantId: value.tenantId,
+    tenantData,
+    loading,
+    error
+  };
+
   return (
-    <TenantContext.Provider value={{ tenantId }}>
+    <TenantContext.Provider value={contextValue}>
       {children}
     </TenantContext.Provider>
   );
