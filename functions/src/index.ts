@@ -28,7 +28,7 @@ export const createTenantForNewUser = functions.auth.user().onCreate(async (user
         uid: uid,
         name: name, // Agora usa o nome correto
         email: email,
-        phone: phoneNumber || null, // O telefone ainda virá do Auth se verificado
+        phone: phoneNumber || null,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
     
@@ -55,11 +55,18 @@ export const createTenantForNewUser = functions.auth.user().onCreate(async (user
     const batch = db.batch();
     batch.set(db.collection('users').doc(uid), newUserProfile);
     batch.set(db.collection('tenants').doc(tenantSlug), newTenant);
-    batch.set(db.collection('tenant_users').doc(), newTenantUser); // Cria com ID automático
+    // Cria com ID automático para evitar colisões e facilitar queries
+    batch.set(db.collection('tenant_users').doc(`${uid}_${tenantSlug}`), newTenantUser);
 
     try {
         await batch.commit();
         console.log(`Perfil, Tenant e Associação criados com sucesso para o usuário ${uid}.`);
+        
+        // Dispara a atualização de claims imediatamente após a criação bem-sucedida.
+        const claims = { tenants: { [tenantSlug]: 'owner' } };
+        await auth.setCustomUserClaims(uid, claims);
+        console.log(`Claims iniciais para o usuário ${uid} definidos com sucesso.`);
+        
         return null;
     } catch (error) {
         console.error(`Erro ao criar dados para o usuário ${uid}:`, error);
@@ -72,18 +79,20 @@ export const createTenantForNewUser = functions.auth.user().onCreate(async (user
 export const updateUserClaimsOnRoleChange = functions.firestore
   .document("tenant_users/{docId}")
   .onWrite(async (change) => {
-    const beforeData = change.before.data();
     const afterData = change.after.data();
+    const beforeData = change.before.data(); // Usado para detectar deleções
 
     // Se o documento foi deletado ou os dados essenciais não existem, para a execução.
     const data = afterData || beforeData;
-    if (!data?.userId) return null;
+    if (!data?.userId) {
+        console.log("Nenhum userId encontrado no documento. Encerrando.");
+        return null;
+    }
     
     const { userId } = data;
     
     try {
-      const user = await auth.getUser(userId);
-      const currentClaims = user.customClaims || {};
+      // Busca todos os tenants associados ao usuário para construir os claims.
       const userTenantsSnapshot = await db.collection("tenant_users").where("userId", "==", userId).get();
 
       const newTenantClaims: { [key: string]: string } = {};
@@ -93,11 +102,22 @@ export const updateUserClaimsOnRoleChange = functions.firestore
           newTenantClaims[tenantUser.tenantId] = tenantUser.role;
         }
       });
-
-      // Atualiza os claims do usuário com o novo mapa de tenants/roles
-      await auth.setCustomUserClaims(userId, { ...currentClaims, tenants: newTenantClaims });
       
-      console.log(`Claims para o usuário ${userId} atualizados com sucesso.`);
+      const user = await auth.getUser(userId);
+      const currentClaims = user.customClaims || {};
+
+      // Mescla os claims de tenant com outros claims existentes, se houver.
+      const finalClaims = { ...currentClaims, tenants: newTenantClaims };
+
+      // Compara os claims para evitar escritas desnecessárias
+      if (JSON.stringify(currentClaims) === JSON.stringify(finalClaims)) {
+        console.log(`Claims para o usuário ${userId} já estão atualizados. Nenhuma ação necessária.`);
+        return null;
+      }
+
+      await auth.setCustomUserClaims(userId, finalClaims);
+      
+      console.log(`Claims para o usuário ${userId} atualizados com sucesso:`, newTenantClaims);
       return null;
     } catch (error) {
       console.error(`Erro ao atualizar claims para o usuário ${userId}:`, error);
