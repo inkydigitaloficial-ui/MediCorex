@@ -1,7 +1,7 @@
 
 import { notFound, redirect } from 'next/navigation';
 import { ReactNode } from 'react';
-import { BarChart, LogOut, Settings, Users, Calendar, CircleDollarSign } from 'lucide-react';
+import { BarChart, LogOut, Settings, Users, Calendar, CircleDollarSign, AlertTriangle } from 'lucide-react';
 
 import { getTenantData } from '@/lib/tenants';
 import { TenantProvider } from '@/hooks/use-tenant';
@@ -66,14 +66,14 @@ export default async function TenantLayout({ children, params }: Props) {
        return (
         <div className="flex h-screen flex-col items-center justify-center bg-background p-4">
             <div className="mx-auto max-w-md text-center">
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle className='font-headline'>Período de Teste Expirado</AlertTitle>
-                <AlertDescription>
+              <Alert variant="destructive" className="flex flex-col items-center">
+                <AlertTriangle className="h-6 w-6 mb-2" />
+                <AlertTitle className='font-headline text-lg'>Período de Teste Expirado</AlertTitle>
+                <AlertDescription className='mt-2'>
                   Seu período de teste de 7 dias terminou. Por favor, escolha um plano para continuar usando o MediCorex.
                 </AlertDescription>
               </Alert>
-              <Button asChild className='mt-4'>
+              <Button asChild className='mt-6'>
                 <Link href="/escolha-seu-plano">Ver Planos</Link>
               </Button>
             </div>
