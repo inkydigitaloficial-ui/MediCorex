@@ -56,6 +56,14 @@
         "name": { "type": "string" }
       }
     },
+    "Consulta": {
+      "title": "Consulta",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "summary": { "type": "string" }
+      }
+    },
     "Product": {
       "title": "Product",
       "type": "object",
@@ -83,6 +91,10 @@
     "tenants/{tenantId}/pacientes/{pacienteId}": {
       "schema": { "$ref": "#/entities/Paciente" },
       "description": "Sub-collection for tenant-specific customers."
+    },
+    "tenants/{tenantId}/consultas/{consultaId}": {
+      "schema": { "$ref": "#/entities/Consulta" },
+      "description": "Sub-collection for tenant-specific appointments."
     },
     "tenants/{tenantId}/products/{productId}": {
       "schema": { "$ref": "#/entities/Product" },

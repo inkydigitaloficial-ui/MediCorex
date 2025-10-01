@@ -1,150 +1,153 @@
 /**
  * @file Firestore Security Rules
- * @core_philosophy This ruleset enforces a multi-tenant security model where users
- *  must be authenticated to access any data. Each tenant's data is isolated, and
- *  users can only access data within their assigned tenant.  The `tenant_users` collection
- *  is used to quickly verify a user's membership in a tenant.
- * @data_structure
- *  - `/tenants/{tenantId}`: Stores tenant metadata.
- *  - `/tenants/{tenantId}/customers/{customerId}`: Stores customer data specific to a tenant.
- *  - `/tenants/{tenantId}/products/{productId}`: Stores product data specific to a tenant.
- *  - `/tenants/{tenantId}/ai_generations/{generationId}`: Stores AI generation data specific to a tenant.
- *  - `/tenant_users/{docId}`: Stores user-tenant mappings.  The `docId` is not enforced
- *      to match a specific pattern, but the document must contain both `tenantId` and `userId`.
- * @key_security_decisions
- *  - All data access requires authentication.
- *  - Listing tenants or tenant_users is disallowed to prevent information disclosure.
- *  - Data validation is minimal in the Prototyping Phase, focusing only on relational integrity
- *    (e.g., tenantId and userId consistency).
- *  - All write operations (create, update, delete) require a valid authentication token
- *    and tenant membership verification.
+ * @description This ruleset implements a multi-tenant security model with user-based access control.
+ *
+ * Core Philosophy:
+ *  - Tenant-based isolation: Data is partitioned by tenant, and users only have access to data within their assigned tenants.
+ *  - User-centric profile management: Users can only manage their own profile data.
+ *  - Data access is restricted to authenticated users.
+ *
+ * Data Structure:
+ *  - /tenants/{tenantId}: Stores tenant-specific information.
+ *  - /tenants/{tenantId}/pacientes/{pacienteId}: Stores pacientes related to a specific tenant.
+ *  - /tenants/{tenantId}/products/{productId}: Stores products related to a specific tenant.
+ *  - /tenants/{tenantId}/ai_generations/{generationId}: Stores ai generations related to a specific tenant.
+ *  - /tenant_users/{docId}: Stores user-tenant mappings and role assignments.
+ *  - /users/{userId}: Stores user profile information.
+ *
+ * Key Security Decisions:
+ *  - Listing all tenants is disallowed; access requires knowing the specific tenant ID.
+ *  - TenantUser documents are used to manage user roles within a tenant.
+ *
+ * Denormalization for Authorization:
+ *  - The `TenantUser` collection denormalizes user-tenant relationships to enable efficient authorization checks. Each document contains the `userId` and `tenantId`, facilitating direct access control.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * @description Enforces access control for the `tenants` collection, ensuring only authenticated users can read or write tenant data.
-     * @path /databases/{database}/documents/tenants/{tenantId}
-     * @allow (get) Authenticated user can get a tenant's data.
-     * @deny (get) Unauthenticated user attempts to get a tenant's data.
-     * @allow (create) Authenticated user can create a tenant if they are creating the root doc with tenant ID.
-     * @deny (create) Unauthenticated user attempts to create a tenant.
-     * @allow (update) Authenticated user can update a tenant if the tenant exists.
-     * @deny (update) Unauthenticated user attempts to update a tenant.
-     * @allow (delete) Authenticated user can delete a tenant if the tenant exists.
-     * @deny (delete) Unauthenticated user attempts to delete a tenant.
-     * @principle Enforces authentication and tenant membership for all data access.
-     */
-    match /tenants/{tenantId} {
-      allow get: if isSignedIn() && isTenantMember(tenantId, request.auth.uid);
-      allow list: if false; // Listing tenants is disallowed.
-      allow create: if isSignedIn() && request.resource.data.id == tenantId;
-      allow update: if isSignedIn() && isTenantMember(tenantId, request.auth.uid) && exists(/databases/$(database)/documents/tenants/$(tenantId));
-      allow delete: if isSignedIn() && isTenantMember(tenantId, request.auth.uid) && exists(/databases/$(database)/documents/tenants/$(tenantId));
-    }
-
-    /**
-     * @description Enforces access control for the `customers` subcollection under a specific tenant. Only authenticated users who are members of the tenant can access customer data.
-     * @path /databases/{database}/documents/tenants/{tenantId}/customers/{customerId}
-     * @allow (get) Authenticated tenant member can get customer data.
-     * @deny (get) Unauthenticated user attempts to get customer data.
-     * @allow (create) Authenticated tenant member can create customer data.
-     * @deny (create) Unauthenticated user attempts to create customer data.
-     * @allow (update) Authenticated tenant member can update customer data if the tenant exists.
-     * @deny (update) Unauthenticated user attempts to update customer data.
-     * @allow (delete) Authenticated tenant member can delete customer data if the tenant exists.
-     * @deny (delete) Unauthenticated user attempts to delete customer data.
-     * @principle Enforces authentication and tenant membership for data access within the `customers` subcollection.
-     */
-    match /tenants/{tenantId}/customers/{customerId} {
-      allow get: if isSignedIn() && isTenantMember(tenantId, request.auth.uid);
-      allow list: if isSignedIn() && isTenantMember(tenantId, request.auth.uid);
-      allow create: if isSignedIn() && isTenantMember(tenantId, request.auth.uid);
-      allow update: if isSignedIn() && isTenantMember(tenantId, request.auth.uid) && exists(/databases/$(database)/documents/tenants/$(tenantId));
-      allow delete: if isSignedIn() && isTenantMember(tenantId, request.auth.uid) && exists(/databases/$(database)/documents/tenants/$(tenantId));
-    }
-
-    /**
-     * @description Enforces access control for the `products` subcollection under a specific tenant. Only authenticated users who are members of the tenant can access product data.
-     * @path /databases/{database}/documents/tenants/{tenantId}/products/{productId}
-     * @allow (get) Authenticated tenant member can get product data.
-     * @deny (get) Unauthenticated user attempts to get product data.
-     * @allow (create) Authenticated tenant member can create product data.
-     * @deny (create) Unauthenticated user attempts to create product data.
-     * @allow (update) Authenticated tenant member can update product data if the tenant exists.
-     * @deny (update) Unauthenticated user attempts to update product data.
-     * @allow (delete) Authenticated tenant member can delete product data if the tenant exists.
-     * @deny (delete) Unauthenticated user attempts to delete product data.
-     * @principle Enforces authentication and tenant membership for data access within the `products` subcollection.
-     */
-    match /tenants/{tenantId}/products/{productId} {
-      allow get: if isSignedIn() && isTenantMember(tenantId, request.auth.uid);
-      allow list: if isSignedIn() && isTenantMember(tenantId, request.auth.uid);
-      allow create: if isSignedIn() && isTenantMember(tenantId, request.auth.uid);
-      allow update: if isSignedIn() && isTenantMember(tenantId, request.auth.uid) && exists(/databases/$(database)/documents/tenants/$(tenantId));
-      allow delete: if isSignedIn() && isTenantMember(tenantId, request.auth.uid) && exists(/databases/$(database)/documents/tenants/$(tenantId));
-    }
-
-        /**
-     * @description Enforces access control for the `ai_generations` subcollection under a specific tenant. Only authenticated users who are members of the tenant can access AI generation data.
-     * @path /databases/{database}/documents/tenants/{tenantId}/ai_generations/{generationId}
-     * @allow (get) Authenticated tenant member can get ai_generation data.
-     * @deny (get) Unauthenticated user attempts to get ai_generation data.
-     * @allow (create) Authenticated tenant member can create ai_generation data.
-     * @deny (create) Unauthenticated user attempts to create ai_generation data.
-     * @allow (update) Authenticated tenant member can update ai_generation data if the tenant exists.
-     * @deny (update) Unauthenticated user attempts to update ai_generation data.
-     * @allow (delete) Authenticated tenant member can delete ai_generation data if the tenant exists.
-     * @deny (delete) Unauthenticated user attempts to delete ai_generation data.
-     * @principle Enforces authentication and tenant membership for data access within the `ai_generations` subcollection.
-     */
-    match /tenants/{tenantId}/ai_generations/{generationId} {
-      allow get: if isSignedIn() && isTenantMember(tenantId, request.auth.uid);
-      allow list: if isSignedIn() && isTenantMember(tenantId, request.auth.uid);
-      allow create: if isSignedIn() && isTenantMember(tenantId, request.auth.uid);
-      allow update: if isSignedIn() && isTenantMember(tenantId, request.auth.uid) && exists(/databases/$(database)/documents/tenants/$(tenantId));
-      allow delete: if isSignedIn() && isTenantMember(tenantId, request.auth.uid) && exists(/databases/$(database)/documents/tenants/$(tenantId));
-    }
-
-    /**
-     * @description Enforces access control for the `tenant_users` collection, ensuring only authenticated users can read or write tenant user mappings.
-     * @path /databases/{database}/documents/tenant_users/{docId}
-     * @allow (get) Authenticated user can get a tenant user mapping if they are the target user or an admin.
-     * @deny (get) Unauthenticated user attempts to get a tenant user mapping.
-     * @allow (create) Authenticated user can create a tenant user mapping if the tenantId and userId match.
-     * @deny (create) Unauthenticated user attempts to create a tenant user mapping.
-     * @allow (update) Authenticated user can update a tenant user mapping if the tenantId and userId match and the document exists.
-     * @deny (update) Unauthenticated user attempts to update a tenant user mapping.
-     * @allow (delete) Authenticated user can delete a tenant user mapping if the tenantId and userId match and the document exists.
-     * @deny (delete) Unauthenticated user attempts to delete a tenant user mapping.
-     * @principle Enforces authentication and tenant membership for all data access.
-     */
-    match /tenant_users/{docId} {
-      allow get: if isSignedIn() && (request.auth.uid == resource.data.userId || isTenantAdmin(resource.data.tenantId, request.auth.uid, docId));
-      allow list: if false; // Listing tenant_users is disallowed.
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.tenantId != null;
-      allow update: if isSignedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.tenantId != null && existsAfter(/databases/$(database)/documents/tenant_users/$(docId));
-      allow delete: if isSignedIn() && request.resource.data.userId == request.auth.uid && exists(/databases/$(database)/documents/tenant_users/$(docId));
-    }
-
-    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
 
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isTenantMember(tenantId, userId) {
-      return exists(/databases/$(database)/documents/tenant_users/{docId}) && get(/databases/$(database)/documents/tenant_users/$(docId)).data.tenantId == tenantId && get(/databases/$(database)/documents/tenant_users/$(docId)).data.userId == userId;
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
     }
 
-    function isTenantAdmin(tenantId, userId, docId) {
-        return get(/databases/$(database)/documents/tenant_users/$(docId)).data.role == 'admin'
-        && get(/databases/$(database)/documents/tenant_users/$(docId)).data.tenantId == tenantId
-        && get(/databases/$(database)/documents/tenant_users/$(docId)).data.userId == userId;
+    function tenantUserExists(tenantId) {
+        return exists(/databases/$(database)/documents/tenant_users/$(tenantId + "_" + request.auth.uid));
+    }
+
+    /**
+     * @description Controls access to tenant documents.
+     * @path /databases/{database}/documents/tenants/{tenantId}
+     * @allow (get) Authenticated user can get a specific tenant if they are part of the tenant in tenant_users collection.
+     * @allow (list) Listing all tenants is not allowed.
+     * @allow (create) Creating tenants is disallowed.
+     * @allow (update) Updating tenants is disallowed.
+     * @allow (delete) Deleting tenants is disallowed.
+     * @principle Tenant data access requires authentication.
+     */
+    match /tenants/{tenantId} {
+      allow get: if isSignedIn() && tenantUserExists(tenantId);
+      allow list: if false;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Controls access to pacientes subcollection within a tenant.
+     * @path /databases/{database}/documents/tenants/{tenantId}/pacientes/{pacienteId}
+     * @allow (get) Authenticated user can get a specific paciente if they are part of the tenant in tenant_users collection.
+     * @allow (list) Authenticated user can list pacientes if they are part of the tenant in tenant_users collection.
+     * @allow (create) Authenticated user can create a paciente if they are part of the tenant in tenant_users collection.
+     * @allow (update) Authenticated user can update a paciente if they are part of the tenant in tenant_users collection.
+     * @allow (delete) Authenticated user can delete a paciente if they are part of the tenant in tenant_users collection.
+     * @principle Tenant-based data access: Only users associated with a tenant can access the tenant's pacientes.
+     */
+    match /tenants/{tenantId}/pacientes/{pacienteId} {
+       allow get: if isSignedIn() && tenantUserExists(tenantId);
+       allow list: if isSignedIn() && tenantUserExists(tenantId);
+       allow create: if isSignedIn() && tenantUserExists(tenantId);
+       allow update: if isSignedIn() && tenantUserExists(tenantId);
+       allow delete: if isSignedIn() && tenantUserExists(tenantId);
+    }
+
+    /**
+     * @description Controls access to products subcollection within a tenant.
+     * @path /databases/{database}/documents/tenants/{tenantId}/products/{productId}
+     * @allow (get) Authenticated user can get a specific product if they are part of the tenant in tenant_users collection.
+     * @allow (list) Authenticated user can list products if they are part of the tenant in tenant_users collection.
+     * @allow (create) Authenticated user can create a product if they are part of the tenant in tenant_users collection.
+     * @allow (update) Authenticated user can update a product if they are part of the tenant in tenant_users collection.
+     * @allow (delete) Authenticated user can delete a product if they are part of the tenant in tenant_users collection.
+     * @principle Tenant-based data access: Only users associated with a tenant can access the tenant's products.
+     */
+    match /tenants/{tenantId}/products/{productId} {
+       allow get: if isSignedIn() && tenantUserExists(tenantId);
+       allow list: if isSignedIn() && tenantUserExists(tenantId);
+       allow create: if isSignedIn() && tenantUserExists(tenantId);
+       allow update: if isSignedIn() && tenantUserExists(tenantId);
+       allow delete: if isSignedIn() && tenantUserExists(tenantId);
+    }
+
+    /**
+     * @description Controls access to AI generations subcollection within a tenant.
+     * @path /databases/{database}/documents/tenants/{tenantId}/ai_generations/{generationId}
+     * @allow (get) Authenticated user can get a specific AI generation if they are part of the tenant in tenant_users collection.
+     * @allow (list) Authenticated user can list AI generations if they are part of the tenant in tenant_users collection.
+     * @allow (create) Authenticated user can create a AI generation if they are part of the tenant in tenant_users collection.
+     * @allow (update) Authenticated user can update a AI generation if they are part of the tenant in tenant_users collection.
+     * @allow (delete) Authenticated user can delete a AI generation if they are part of the tenant in tenant_users collection.
+     * @principle Tenant-based data access: Only users associated with a tenant can access the tenant's AI generations.
+     */
+    match /tenants/{tenantId}/ai_generations/{generationId} {
+       allow get: if isSignedIn() && tenantUserExists(tenantId);
+       allow list: if isSignedIn() && tenantUserExists(tenantId);
+       allow create: if isSignedIn() && tenantUserExists(tenantId);
+       allow update: if isSignedIn() && tenantUserExists(tenantId);
+       allow delete: if isSignedIn() && tenantUserExists(tenantId);
+    }
+
+    /**
+     * @description Controls access to tenant_users documents.
+     * @path /databases/{database}/documents/tenant_users/{docId}
+     * @allow (get) Authenticated user can get a specific tenant_user if the docId matches "{tenantId}_{userId}".
+     * @allow (list) Listing all tenant_users is disallowed.
+     * @allow (create) Creating tenant_users is allowed if the docId matches "{tenantId}_{userId}".
+     * @allow (update) Updating tenant_users is allowed if the docId matches "{tenantId}_{userId}" and document exists.
+     * @allow (delete) Deleting tenant_users is allowed if the docId matches "{tenantId}_{userId}" and document exists.
+     * @principle TenantUser data access requires authentication and proper document ID format.
+     */
+    match /tenant_users/{docId} {
+      allow get: if isSignedIn() && docId == request.auth.uid + "_" + request.resource.data.tenantId;
+      allow list: if false;
+      allow create: if isSignedIn() && docId == request.auth.uid + "_" + request.resource.data.tenantId;
+      allow update: if isSignedIn() && docId == resource.data.userId + "_" + resource.data.tenantId;
+      allow delete: if isSignedIn() && docId == resource.data.userId + "_" + resource.data.tenantId;
+    }
+
+    /**
+     * @description Controls access to user profile documents.
+     * @path /databases/{database}/documents/users/{userId}
+     * @allow (get) Authenticated user can get their own profile.
+     * @allow (list) Listing all users is disallowed.
+     * @allow (create) Authenticated user can create their own profile.
+     * @allow (update) Authenticated user can update their own profile if the document exists.
+     * @allow (delete) Authenticated user can delete their own profile if the document exists.
+     * @principle User data access is restricted to the owner of the profile.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
   }
 }

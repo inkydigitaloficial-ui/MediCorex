@@ -1,75 +1,49 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
+import { Tenant } from '@/types/tenant'; // Tipo definido
 
 interface TenantContextType {
-  tenantId: string;
-  tenantData: any | null; // Consider defining a strong type for tenant data
-  loading: boolean;
-  error: Error | null;
+  tenant: Tenant | null;
 }
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
 
-export function TenantProvider({ 
-  children, 
-  value 
-}: { 
-  children: ReactNode;
-  value: { tenantId: string; tenantData: any };
+export function TenantProvider({
+  children,
+  initialData,
+}: {
+  children: React.ReactNode;
+  initialData: Tenant;
 }) {
-  const firestore = useFirestore(); // Use the hook to get the firestore instance
-  const [tenantData, setTenantData] = useState(value.tenantData);
-  const [loading, setLoading] = useState(!value.tenantData); // Initial loading state
-  const [error, setError] = useState<Error | null>(null);
+  const firestore = useFirestore();
+  const [tenant, setTenant] = useState<Tenant>(initialData);
 
-  // Real-time listener for tenant data updates
+  // Ouve por atualizações em tempo real no documento do tenant
   useEffect(() => {
-    // No need to run if firestore is not available yet, though the layout ensures it is.
-    if (!firestore) return;
+    if (!firestore || !initialData?.id) return;
 
-    setLoading(true);
-    const unsubscribe = onSnapshot(
-      doc(firestore, 'tenants', value.tenantId),
-      (snapshot) => {
-        if (snapshot.exists()) {
-          setTenantData({ id: snapshot.id, ...snapshot.data() });
-        } else {
-          // This case might happen if the tenant is deleted while the user is on the page
-          setError(new Error(`Tenant with ID ${value.tenantId} no longer exists.`));
-        }
-        setLoading(false);
-      },
-      (err) => {
-        console.error('Error in tenant listener:', err);
-        setError(err as Error);
-        setLoading(false);
+    const unsubscribe = onSnapshot(doc(firestore, 'tenants', initialData.id), (snapshot) => {
+      if (snapshot.exists()) {
+        setTenant({ id: snapshot.id, ...snapshot.data() } as Tenant);
       }
-    );
+    });
 
-    return () => unsubscribe();
-  }, [value.tenantId, firestore]);
+    return () => unsubscribe(); // Limpa o listener ao desmontar
+  }, [initialData.id, firestore]);
+  
+  // Memoiza o valor para evitar re-renderizações desnecessárias
+  const value = useMemo(() => ({ tenant }), [tenant]);
 
-  const contextValue = {
-    tenantId: value.tenantId,
-    tenantData,
-    loading,
-    error
-  };
-
-  return (
-    <TenantContext.Provider value={contextValue}>
-      {children}
-    </TenantContext.Provider>
-  );
+  return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>;
 }
 
 export function useTenant() {
   const context = useContext(TenantContext);
   if (context === undefined) {
-    throw new Error('useTenant must be used within a TenantProvider');
+    throw new Error('useTenant deve ser usado dentro de um TenantProvider');
   }
   return context;
 }
