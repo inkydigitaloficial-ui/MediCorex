@@ -10,35 +10,43 @@ export const config = {
      * 4. /_vercel (Vercel internals)
      * 5. all root files inside /public (e.g. /favicon.ico)
      */
-    '/((?!api/|_next/|_static/|_vercel/|[\\w-]+\\.\\w+).*)',
+    '/((?!api/|_next/|_static/|_vercel/|favicon.ico|_tenants).*)',
   ],
 };
 
 export default function middleware(req: NextRequest) {
-  const url = req.nextUrl;
-  const host = req.headers.get('host');
-
-  // For local development, the host is 'subdomain.localhost:port'.
-  // In production, you'd replace 'localhost:9002' with your actual root domain.
-  const rootDomain = 'localhost:9002';
+  const url = req.nextUrl.clone();
+  const hostname = req.headers.get('host') || '';
   
-  let subdomain = '';
-  if (host && host.endsWith(rootDomain)) {
-    subdomain = host.replace(`.${rootDomain}`, '');
+  const rootDomain = process.env.ROOT_DOMAIN || 'localhost:9002';
+  
+  // Remove a porta para o ambiente de desenvolvimento.
+  const cleanHostname = hostname.split(':')[0];
+
+  // Tratamento para desenvolvimento (ex: acme.localhost) e produção (ex: acme.meuapp.com)
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const devSuffix = '.localhost';
+  const prodSuffix = `.${rootDomain.split(':')[0]}`;
+
+  let subdomain = null;
+
+  if (isDevelopment) {
+    if (cleanHostname.endsWith(devSuffix)) {
+      subdomain = cleanHostname.replace(devSuffix, '');
+    }
+  } else {
+    if (hostname.endsWith(`.${rootDomain}`)) {
+      subdomain = hostname.replace(`.${rootDomain}`, '');
+    }
   }
 
-  const searchParams = req.nextUrl.searchParams.toString();
-  const path = `${url.pathname}${searchParams.length > 0 ? `?${searchParams}` : ''}`;
-
-  // If there's no subdomain or it's 'www', show the main landing page.
-  if (!subdomain || subdomain === 'www' || subdomain === rootDomain.split(':')[0]) {
+  // Domínios que não devem ser tratados como tenants
+  const nonTenantHosts = ['www', 'app', 'admin', rootDomain.split(':')[0]];
+  if (!subdomain || nonTenantHosts.includes(subdomain) || subdomain.includes('.')) {
     return NextResponse.next();
   }
 
-  // Rewrite to the /_tenants/[tenant] route
-  if (subdomain) {
-    return NextResponse.rewrite(new URL(`/_tenants/${subdomain}${path}`, req.url));
-  }
-
-  return NextResponse.next();
+  // Reescreve a URL para a estrutura de tenants interna
+  url.pathname = `/_tenants/${subdomain}${url.pathname}`;
+  return NextResponse.rewrite(url);
 }
