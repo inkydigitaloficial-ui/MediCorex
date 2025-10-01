@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -111,4 +112,3 @@ export async function loginAction(prevState: FormState, formData: FormData): Pro
     // The client would receive the success state and handle the sign-in and redirect.
     redirect('https://acme.localhost:9002');
 }
-

@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowRight, Building, CircuitBoard, Lock } from "lucide-react";
@@ -19,12 +20,12 @@ export default function Home() {
         <nav className="ml-auto flex gap-4 sm:gap-6">
           <Button variant="ghost" asChild>
             <Link href="#features" prefetch={false}>
-              Features
+              Recursos
             </Link>
           </Button>
           <Button asChild>
             <Link href="/auth/login" prefetch={false}>
-              Login
+              Entrar
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
@@ -37,19 +38,19 @@ export default function Home() {
               <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-2">
                   <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline text-primary">
-                    Unlock Tenant-Specific Insights with TenantFlow
+                    Desbloqueie Insights Específicos com TenantFlow
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                    Our powerful multitenant platform provides secure, isolated environments and AI-driven analytics to understand your customers better.
+                    Nossa poderosa plataforma multitenant oferece ambientes seguros e isolados e análises orientadas por IA para entender melhor seus clientes.
                   </p>
                   <p className="max-w-[600px] text-sm text-muted-foreground pt-4">
-                    To access your workspace, please use your assigned subdomain (e.g., <code className="bg-muted px-1 py-0.5 rounded-sm">acme.localhost:9002</code>).
+                    Para acessar seu espaço de trabalho, use seu subdomínio atribuído (ex: <code className="bg-muted px-1 py-0.5 rounded-sm">acme.localhost:9002</code>).
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
                   <Button asChild size="lg">
                     <Link href="https://acme.localhost:9002" prefetch={false}>
-                      View Demo Tenant
+                      Ver Tenant de Demonstração
                     </Link>
                   </Button>
                 </div>
@@ -72,12 +73,12 @@ export default function Home() {
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
-                <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm">Key Features</div>
+                <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm">Principais Recursos</div>
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
-                  Built for Secure, Scalable Multi-Tenancy
+                  Construído para Multitenancy Segura e Escalável
                 </h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  TenantFlow is architected from the ground up to provide robust data isolation, tenant-aware AI, and a seamless user experience.
+                  O TenantFlow é projetado desde o início para fornecer isolamento robusto de dados, IA consciente do tenant e uma experiência de usuário perfeita.
                 </p>
               </div>
             </div>
@@ -87,11 +88,11 @@ export default function Home() {
                   <div className="bg-primary/10 text-primary p-3 rounded-full self-start">
                     <Building className="h-6 w-6" />
                   </div>
-                  <CardTitle className="font-headline">Subdomain Routing</CardTitle>
+                  <CardTitle className="font-headline">Roteamento por Subdomínio</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CardDescription>
-                    Automatic and seamless routing of users to their dedicated tenant space based on subdomains, ensuring a clean and isolated experience.
+                    Roteamento automático e contínuo de usuários para seu espaço de tenant dedicado com base em subdomínios, garantindo uma experiência limpa e isolada.
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -100,11 +101,11 @@ export default function Home() {
                   <div className="bg-primary/10 text-primary p-3 rounded-full self-start">
                     <Lock className="h-6 w-6" />
                   </div>
-                  <CardTitle className="font-headline">Firestore Security</CardTitle>
+                  <CardTitle className="font-headline">Segurança do Firestore</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CardDescription>
-                    Leverage powerful Firestore security rules to enforce strict data isolation between tenants at the database level, preventing any unauthorized access.
+                    Aproveite as poderosas regras de segurança do Firestore para impor um isolamento de dados rigoroso entre os tenants no nível do banco de dados.
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -113,11 +114,11 @@ export default function Home() {
                   <div className="bg-primary/10 text-primary p-3 rounded-full self-start">
                     <CircuitBoard className="h-6 w-6" />
                   </div>
-                  <CardTitle className="font-headline">Genkit AI Insights</CardTitle>
+                  <CardTitle className="font-headline">Insights com IA Genkit</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CardDescription>
-                    Utilize Genkit flows to generate powerful customer insights. Our AI is tenant-aware, ensuring all generated data is relevant and secure.
+                    Utilize fluxos Genkit para gerar insights poderosos sobre os clientes. Nossa IA é consciente do tenant, garantindo que todos os dados gerados sejam relevantes e seguros.
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -126,7 +127,7 @@ export default function Home() {
         </section>
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-muted-foreground">&copy; 2024 TenantFlow. All rights reserved.</p>
+        <p className="text-xs text-muted-foreground">&copy; 2024 TenantFlow. Todos os direitos reservados.</p>
       </footer>
     </div>
   );
