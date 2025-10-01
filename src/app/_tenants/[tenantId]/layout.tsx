@@ -21,11 +21,29 @@ import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { differenceInDays } from 'date-fns';
 
 type Props = {
   children: ReactNode;
   params: { tenantId: string };
 };
+
+function TrialBanner({ trialEnds }: { trialEnds: Date }) {
+  const daysLeft = differenceInDays(trialEnds, new Date());
+
+  if (daysLeft < 0) return null;
+
+  return (
+    <div className='px-4 pt-4'>
+      <Alert className='border-primary/50 bg-primary/5 text-primary-foreground'>
+        <AlertDescription className='text-center text-sm text-primary'>
+          {daysLeft > 1 ? `Você tem mais ${daysLeft} dias de teste gratuito.` : daysLeft === 1 ? 'Este é seu último dia de teste gratuito.' : 'Seu período de teste gratuito acabou.'}
+        </AlertDescription>
+      </Alert>
+    </div>
+  )
+}
 
 export default async function TenantLayout({ children, params }: Props) {
   const tenantId = params.tenantId;
@@ -38,8 +56,10 @@ export default async function TenantLayout({ children, params }: Props) {
       notFound();
     }
 
+    const trialEndsDate = tenantData.trialEnds?.toDate();
+
     // 🚨 VALIDAÇÃO DE ASSINATURA (Exemplo): Se o plano expirou, redireciona
-    if (tenantData.plan === 'trial' && tenantData.trialEnds && new Date(tenantData.trialEnds.toDate()) < new Date()) {
+    if (tenantData.subscriptionStatus === 'trialing' && trialEndsDate && new Date() > trialEndsDate) {
        console.warn(`Trial expired for tenant: ${tenantId}`);
        // Em uma app real, redirecionaria para uma página de cobrança
        // Ex: redirect(`/billing?tenant=${tenantId}`);
@@ -53,7 +73,7 @@ export default async function TenantLayout({ children, params }: Props) {
             <SidebarHeader>
               <div className="flex items-center gap-2">
                 <Logo className="h-7 w-7 text-primary" />
-                <h1 className="text-xl font-semibold font-headline">{tenantData.name || 'TenantFlow'}</h1>
+                <h1 className="text-xl font-semibold font-headline">{tenantData.name || 'MediCorex'}</h1>
               </div>
             </SidebarHeader>
             <SidebarContent>
@@ -125,7 +145,8 @@ export default async function TenantLayout({ children, params }: Props) {
                 {/* O título pode ser dinâmico com base na página */}
               </div>
             </header>
-              {children}
+            {tenantData.subscriptionStatus === 'trialing' && trialEndsDate && <TrialBanner trialEnds={trialEndsDate} />}
+            {children}
           </SidebarInset>
         </SidebarProvider>
       </TenantProvider>
