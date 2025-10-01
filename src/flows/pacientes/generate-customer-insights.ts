@@ -12,7 +12,7 @@
  * @function generateCustomerInsights - An async function that calls the generateCustomerInsightsFlow with the input and returns the output.
  */
 
-import { ai } from '@/lib/firebase/genkit';
+import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { getFirestore } from 'firebase-admin/firestore';
 import { initializeApp, getApps, App } from 'firebase-admin/app';
@@ -138,7 +138,7 @@ const generateCustomerInsightsFlow = ai.defineFlow(
           input: { query, analysisType },
           output: aiResponse,
           createdAt: new Date(),
-          createdBy: 'system'
+          createdBy: 'system' // Em um app real, seria o ID do usuário logado
         });
 
       return {
@@ -154,6 +154,7 @@ const generateCustomerInsightsFlow = ai.defineFlow(
 
     } catch (error: any) {
       console.error('Erro no flow generateCustomerInsights:', error);
+      // Assegura que o erro propagado seja uma string simples
       throw new Error(`Falha ao gerar insights: ${error.message || 'Erro desconhecido'}`);
     }
   }
