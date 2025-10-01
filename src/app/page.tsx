@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowRight, Building, CircuitBoard, Lock } from "lucide-react";
@@ -14,17 +15,17 @@ export default function Home() {
       <header className="px-4 lg:px-6 h-16 flex items-center border-b">
         <Link href="#" className="flex items-center justify-center gap-2" prefetch={false}>
           <Logo className="h-6 w-6 text-primary" />
-          <span className="text-lg font-semibold font-headline">TenantFlow</span>
+          <span className="text-lg font-semibold font-headline">MediCorex</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6">
           <Button variant="ghost" asChild>
             <Link href="#features" prefetch={false}>
-              Features
+              Recursos
             </Link>
           </Button>
-          <Button variant="ghost" asChild>
-            <Link href="https://acme.localhost:9002" prefetch={false}>
-              Demo
+          <Button asChild>
+            <Link href="/auth/login" prefetch={false}>
+              Entrar
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
@@ -37,22 +38,27 @@ export default function Home() {
               <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-2">
                   <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline text-primary">
-                    Unlock Tenant-Specific Insights with TenantFlow
+                    O Sistema Inteligente para a Gestão da sua Clínica
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                    Our powerful multitenant platform provides secure, isolated environments and AI-driven analytics to understand your customers better.
-                  </p>
-                  <p className="max-w-[600px] text-sm text-muted-foreground pt-4">
-                    To access your workspace, please use your assigned subdomain (e.g., <code className="bg-muted px-1 py-0.5 rounded-sm">acme.localhost:9002</code>).
+                    O MediCorex centraliza prontuários, agenda e finanças em um ambiente seguro e exclusivo. Use nossa IA para otimizar diagnósticos e focar no que mais importa: seus pacientes.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
                   <Button asChild size="lg">
+                    <Link href="/auth/signup" prefetch={false}>
+                      Iniciar Teste Gratuito de 7 Dias
+                    </Link>
+                  </Button>
+                   <Button asChild size="lg" variant="outline">
                     <Link href="https://acme.localhost:9002" prefetch={false}>
-                      View Demo Tenant
+                      Ver Clínica de Demonstração
                     </Link>
                   </Button>
                 </div>
+                 <p className="max-w-[600px] text-xs text-muted-foreground pt-4">
+                    Teste gratuito de 7 dias do plano Premium. Não é necessário cartão de crédito.
+                  </p>
               </div>
               {heroImage && (
                 <Image
@@ -72,12 +78,12 @@ export default function Home() {
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
-                <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm">Key Features</div>
+                <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm">Principais Recursos</div>
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
-                  Built for Secure, Scalable Multi-Tenancy
+                  Construído para a Clínica Moderna
                 </h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  TenantFlow is architected from the ground up to provide robust data isolation, tenant-aware AI, and a seamless user experience.
+                  Nossa plataforma foi projetada para garantir segurança de dados, eficiência operacional e insights que transformam o atendimento.
                 </p>
               </div>
             </div>
@@ -87,11 +93,11 @@ export default function Home() {
                   <div className="bg-primary/10 text-primary p-3 rounded-full self-start">
                     <Building className="h-6 w-6" />
                   </div>
-                  <CardTitle className="font-headline">Subdomain Routing</CardTitle>
+                  <CardTitle className="font-headline">Ambiente Exclusivo</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CardDescription>
-                    Automatic and seamless routing of users to their dedicated tenant space based on subdomains, ensuring a clean and isolated experience.
+                    Cada clínica opera em um espaço isolado e seguro, com seu próprio subdomínio, garantindo total privacidade e controle dos seus dados.
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -100,11 +106,11 @@ export default function Home() {
                   <div className="bg-primary/10 text-primary p-3 rounded-full self-start">
                     <Lock className="h-6 w-6" />
                   </div>
-                  <CardTitle className="font-headline">Firestore Security</CardTitle>
+                  <CardTitle className="font-headline">Segurança Avançada</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CardDescription>
-                    Leverage powerful Firestore security rules to enforce strict data isolation between tenants at the database level, preventing any unauthorized access.
+                    Utilizamos as melhores práticas de segurança para proteger os dados dos seus pacientes, com criptografia e regras de acesso restritas.
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -113,11 +119,11 @@ export default function Home() {
                   <div className="bg-primary/10 text-primary p-3 rounded-full self-start">
                     <CircuitBoard className="h-6 w-6" />
                   </div>
-                  <CardTitle className="font-headline">Genkit AI Insights</CardTitle>
+                  <CardTitle className="font-headline">Assistente com IA</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CardDescription>
-                    Utilize Genkit flows to generate powerful customer insights. Our AI is tenant-aware, ensuring all generated data is relevant and secure.
+                    Nossa inteligência artificial analisa o histórico do paciente e gera resumos inteligentes, ajudando você a tomar decisões mais rápidas e informadas.
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -126,7 +132,7 @@ export default function Home() {
         </section>
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-muted-foreground">&copy; 2024 TenantFlow. All rights reserved.</p>
+        <p className="text-xs text-muted-foreground">&copy; 2024 MediCorex. Todos os direitos reservados.</p>
       </footer>
     </div>
   );
