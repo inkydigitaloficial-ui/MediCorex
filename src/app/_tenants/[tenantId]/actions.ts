@@ -1,6 +1,6 @@
 'use server';
 
-import { generateCustomerInsights } from '@/flows/pacientes/generate-customer-insights';
+import { gerarResumoPaciente } from '@/flows/pacientes/gerarResumoPaciente';
 import { z } from 'zod';
 
 const formSchema = z.object({
@@ -10,7 +10,7 @@ const formSchema = z.object({
 });
 
 type FormState = {
-  result: Awaited<ReturnType<typeof generateCustomerInsights>> | null;
+  result: Awaited<ReturnType<typeof gerarResumoPaciente>> | null;
   error: string | null;
 };
 
@@ -18,33 +18,7 @@ export async function generateCustomerInsightsAction(
   prevState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const rawFormData = {
-    query: formData.get('query'),
-    tenantId: formData.get('tenantId'),
-    customerId: formData.get('customerId'),
-  };
-
-  const validatedFields = formSchema.safeParse(rawFormData);
-
-  if (!validatedFields.success) {
-    const firstError = Object.values(validatedFields.error.flatten().fieldErrors)[0]?.[0];
-    return {
-      result: null,
-      error: firstError || 'Invalid input.',
-    };
-  }
-
-  try {
-    const result = await generateCustomerInsights({
-      tenantId: validatedFields.data.tenantId,
-      query: validatedFields.data.query,
-      customerId: validatedFields.data.customerId,
-      analysisType: 'comportamento', 
-    });
-    return { result, error: null };
-  } catch (error) {
-    console.error('Error generating insights:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-    return { result: null, error: `Failed to generate insights: ${errorMessage}` };
-  }
+  // This action is currently not used but is kept for reference.
+  // The logic has been moved to a direct call in the patient detail page.
+  return { result: null, error: 'This action is deprecated.' };
 }

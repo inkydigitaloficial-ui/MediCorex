@@ -6,19 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sparkles } from 'lucide-react';
 import { useUser } from '@/firebase'; // Hook para obter o usuário autenticado
-
-// A Server Action que irá chamar o fluxo Genkit
-async function generateSummaryAction(tenantId: string, pacienteId: string, userId: string): Promise<string> {
-    'use server';
-    // Em um cenário real, você importaria e chamaria o fluxo Genkit aqui.
-    // Por enquanto, vamos simular a chamada e o retorno.
-    // const { gerarResumoPaciente } = await import('@/flows/pacientes/gerarResumoPaciente');
-    // return await gerarResumoPaciente({ tenantId, pacienteId, userId });
-    
-    // Simulação de retorno para fins de UI
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    return `Resumo do paciente ${pacienteId} para a clínica ${tenantId}, gerado pelo usuário ${userId}. O paciente apresenta um histórico de consultas regulares para acompanhamento de condição crônica. Última consulta há 2 meses mostrou boa adesão ao tratamento. Recomenda-se agendar retorno para avaliação.`;
-}
+import { gerarResumoPaciente } from '@/flows/pacientes/gerarResumoPaciente';
 
 
 export default function PacienteDetailPage({ 
@@ -27,7 +15,7 @@ export default function PacienteDetailPage({
   params: { tenantId: string; pacienteId: string } 
 }) {
   const { tenant } = useTenant();
-  const { user } = useUser(); // Obter o usuário do Firebase Auth
+  const { user, isUserLoading } = useUser(); // Obter o usuário do Firebase Auth
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +31,11 @@ export default function PacienteDetailPage({
     setSummary(null);
 
     try {
-      const result = await generateSummaryAction(params.tenantId, params.pacienteId, user.uid);
+      const result = await gerarResumoPaciente({ 
+        tenantId: params.tenantId, 
+        pacienteId: params.pacienteId, 
+        userId: user.uid 
+      });
       setSummary(result);
     } catch (err: any) {
       console.error('Erro ao gerar resumo:', err);
@@ -75,7 +67,7 @@ export default function PacienteDetailPage({
                     </p>
                     <Button 
                         onClick={handleGenerateSummary}
-                        disabled={loading}
+                        disabled={loading || isUserLoading}
                     >
                         {loading ? (
                             <>
@@ -92,17 +84,6 @@ export default function PacienteDetailPage({
                 </div>
             </CardContent>
         </Card>
-
-      {loading && (
-         <Card>
-            <CardHeader>
-                <CardTitle>Resumo em Andamento</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p className='text-sm text-muted-foreground'>Aguarde, a IA está processando os dados...</p>
-            </CardContent>
-        </Card>
-      )}
 
       {error && (
         <Card className='border-destructive'>
