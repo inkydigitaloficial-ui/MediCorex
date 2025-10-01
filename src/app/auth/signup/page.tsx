@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,9 +38,16 @@ export default function SignupPage() {
 
     try {
       // 1. Cria o usuário
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
-      // 2. Faz o login automático com as mesmas credenciais
+      // 2. ATUALIZA O PERFIL com o nome fornecido
+      if (userCredential.user) {
+        await updateProfile(userCredential.user, {
+            displayName: name,
+        });
+      }
+
+      // 3. Faz o login automático com as mesmas credenciais
       await signInWithEmailAndPassword(auth, email, password);
 
       toast({
@@ -48,7 +55,7 @@ export default function SignupPage() {
         description: 'Estamos preparando sua clínica. Você será redirecionado em instantes.',
       });
 
-      // 3. Redireciona para a página de setup que vai aguardar a criação do tenant
+      // 4. Redireciona para a página de setup que vai aguardar a criação do tenant
       router.push('/auth/setup-account');
 
     } catch (error: any) {

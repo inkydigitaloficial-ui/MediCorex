@@ -16,22 +16,24 @@ export const createTenantForNewUser = functions.auth.user().onCreate(async (user
         return null;
     }
 
+    // Usa o displayName (que foi setado no cliente) como prioridade.
     const name = displayName || email.split('@')[0];
     const baseSlug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    // Garante que o slug seja único adicionando parte do UID.
     const tenantSlug = `${baseSlug}-${uid.slice(0, 5)}`;
     
     const trialEndsDate = addDays(new Date(), 7);
 
     const newUserProfile = {
         uid: uid,
-        name: name,
+        name: name, // Agora usa o nome correto
         email: email,
-        phone: phoneNumber || null,
+        phone: phoneNumber || null, // O telefone ainda virá do Auth se verificado
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
     
     const newTenant = {
-        name: `Clínica de ${name}`,
+        name: `Clínica de ${name}`, // Nome da clínica usa o nome correto
         slug: tenantSlug,
         ownerId: uid,
         active: true,
@@ -53,7 +55,7 @@ export const createTenantForNewUser = functions.auth.user().onCreate(async (user
     const batch = db.batch();
     batch.set(db.collection('users').doc(uid), newUserProfile);
     batch.set(db.collection('tenants').doc(tenantSlug), newTenant);
-    batch.set(db.collection('tenant_users').doc(), newTenantUser);
+    batch.set(db.collection('tenant_users').doc(), newTenantUser); // Cria com ID automático
 
     try {
         await batch.commit();
@@ -61,8 +63,6 @@ export const createTenantForNewUser = functions.auth.user().onCreate(async (user
         return null;
     } catch (error) {
         console.error(`Erro ao criar dados para o usuário ${uid}:`, error);
-        // Em um app de produção, você poderia adicionar uma lógica para tentar novamente
-        // ou notificar a equipe de desenvolvimento.
         return null;
     }
 });
@@ -104,4 +104,3 @@ export const updateUserClaimsOnRoleChange = functions.firestore
       return null;
     }
   });
-
