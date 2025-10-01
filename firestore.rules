@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // This rule allows anyone to read the public information about tenants.
+    // In a real application, you might restrict this to authenticated users.
+    // Writes are disallowed from the client to prevent unauthorized creation or modification.
+    match /tenants/{tenantId} {
+      allow get: if true;
+      allow list, create, update, delete: if false;
+    }
+    
+    // This is a generic rule for any data collection that belongs to a tenant.
+    // It assumes that every document in a tenant-specific collection has a `tenantId` field.
+    // This rule checks if the authenticated user's custom token includes a `tenantId` claim
+    // that matches the document's `tenantId`.
+    match /customerData/{docId} {
+      allow read, write: if request.auth != null && request.auth.token.tenantId == resource.data.tenantId;
+    }
+
+    // Example for a nested data structure:
+    // This rule structure is useful if all of a tenant's data is nested under their tenant document.
+    match /tenants/{tenantId}/{collection}/{docId} {
+       allow read, write: if request.auth != null && request.auth.token.tenantId == tenantId;
+    }
+  }
+}
