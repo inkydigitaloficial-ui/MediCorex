@@ -2,10 +2,9 @@
 'use server';
 
 import { z } from 'zod';
-import { getApps, initializeApp, App, cert } from 'firebase-admin/app';
+import { getApps, initializeApp, App } from 'firebase-admin/app';
 import { getAuth as getAdminAuth } from 'firebase-admin/auth';
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
-import { redirect } from 'next/navigation';
+import { getFirestore } from 'firebase-admin/firestore';
 
 // Helper to initialize Firebase Admin SDK idempotently
 function initializeAdminApp(): App {
@@ -13,8 +12,6 @@ function initializeAdminApp(): App {
     if (apps.length > 0) {
         return apps[0];
     }
-    // Esta inicialização é um fallback e pode depender de credenciais de ambiente.
-    // A Cloud Function terá as credenciais automaticamente. O dev local pode precisar delas.
     return initializeApp();
 }
 
@@ -26,14 +23,8 @@ const loginSchema = z.object({
 type LoginFormState = {
     error: string | null;
     success: boolean;
-    tenantSlug?: string | null; // Adicionado para redirecionamento
+    tenantSlug?: string | null;
 };
-
-
-// The signupAction is no longer used.
-// The signup logic is now handled on the client-side in /auth/signup/page.tsx
-// and a Cloud Function handles tenant creation.
-
 
 export async function loginAction(prevState: LoginFormState, formData: FormData): Promise<LoginFormState> {
     const rawFormData = Object.fromEntries(formData.entries());
@@ -59,8 +50,6 @@ export async function loginAction(prevState: LoginFormState, formData: FormData)
 
     let userRecord;
     try {
-        // A senha não é validada aqui, apenas a existência do usuário pelo email.
-        // A validação da senha é feita no cliente com signInWithEmailAndPassword.
         userRecord = await adminAuth.getUserByEmail(email);
     } catch (error: any) {
         if (error.code === 'auth/user-not-found') {
@@ -70,16 +59,44 @@ export async function loginAction(prevState: LoginFormState, formData: FormData)
         return { error: 'Credenciais inválidas. Verifique seu email e senha.', success: false };
     }
     
-    // Procura o tenant associado ao usuário.
     const tenantUsersSnapshot = await db.collection('tenant_users').where('userId', '==', userRecord.uid).limit(1).get();
 
     if (tenantUsersSnapshot.empty) {
-        // A Cloud Function pode ainda não ter terminado de criar o tenant.
         return { error: 'Sua clínica ainda está sendo preparada. Tente novamente em alguns instantes.', success: false };
     }
 
     const firstTenant = tenantUsersSnapshot.docs[0].data();
 
-    // Retorna sucesso e o slug do tenant para o cliente fazer o login e redirecionar.
     return { success: true, error: null, tenantSlug: firstTenant.tenantId };
+}
+
+
+type FindTenantState = {
+  error: string | null;
+  tenantId: string | null;
+};
+
+export async function findUserTenantAction(userId: string): Promise<FindTenantState> {
+  if (!userId) {
+    return { error: 'ID do usuário não fornecido.', tenantId: null };
+  }
+
+  try {
+    const adminApp = initializeAdminApp();
+    const db = getFirestore(adminApp);
+
+    const tenantUsersSnapshot = await db.collection('tenant_users').where('userId', '==', userId).limit(1).get();
+
+    if (tenantUsersSnapshot.empty) {
+      // É normal não encontrar imediatamente, a Cloud Function pode estar em execução.
+      return { error: 'Tenant não encontrado ainda.', tenantId: null };
+    }
+
+    const tenantData = tenantUsersSnapshot.docs[0].data();
+    return { error: null, tenantId: tenantData.tenantId };
+  } catch (error) {
+    console.error('Erro ao buscar tenant do usuário:', error);
+    // Retorna um erro genérico para o cliente.
+    return { error: 'Ocorreu um erro no servidor ao procurar sua clínica.', tenantId: null };
+  }
 }

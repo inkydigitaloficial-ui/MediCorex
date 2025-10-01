@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,16 +37,19 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
+      // 1. Cria o usuário
       await createUserWithEmailAndPassword(auth, email, password);
-      // A Cloud Function 'createTenantForNewUser' cuidará da criação do tenant e do perfil.
       
+      // 2. Faz o login automático com as mesmas credenciais
+      await signInWithEmailAndPassword(auth, email, password);
+
       toast({
-        title: 'Cadastro realizado com sucesso!',
-        description: 'Sua clínica está sendo preparada. Você será redirecionado para o login.',
+        title: 'Conta criada com sucesso!',
+        description: 'Estamos preparando sua clínica. Você será redirecionado em instantes.',
       });
 
-      // Redireciona para o login com um parâmetro para mostrar a mensagem de sucesso.
-      router.push('/auth/login?signup=success');
+      // 3. Redireciona para a página de setup que vai aguardar a criação do tenant
+      router.push('/auth/setup-account');
 
     } catch (error: any) {
       let description = 'Ocorreu um erro desconhecido. Tente novamente.';
@@ -63,8 +66,7 @@ export default function SignupPage() {
         title: 'Erro no Cadastro',
         description: description,
       });
-    } finally {
-      setLoading(false);
+       setLoading(false);
     }
   };
 
