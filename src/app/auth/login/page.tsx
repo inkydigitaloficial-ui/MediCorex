@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { loginAction } from '../actions';
 import { useSearchParams } from 'next/navigation';
-import { useAuth } from '@/firebase';
+import { useAuth } from '@/lib/firebase/use-auth';
 import { createSessionCookie } from '../session/actions'; // 1. Importa a nova Server Action
 
 function SubmitButton() {

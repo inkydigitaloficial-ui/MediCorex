@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -5,7 +6,7 @@ import { useTenant } from '@/hooks/use-tenant';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sparkles, User } from 'lucide-react';
-import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase/hooks';
 import { gerarResumoPaciente } from '@/flows/pacientes/gerarResumoPaciente';
 import { doc } from 'firebase/firestore';
 import { Paciente } from '@/types/paciente';

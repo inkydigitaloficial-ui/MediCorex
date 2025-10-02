@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useState } from 'react';
 import { collection, addDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { useFirestore } from '@/firebase';
+import { useFirestore } from '@/firebase/hooks';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowRight, UserPlus, Users } from "lucide-react";
@@ -151,4 +152,3 @@ export function PacientesClientView({ pacientes, tenantId }: { pacientes: Pacien
         </>
     );
 }
-
