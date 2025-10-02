@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { headers } from 'next/headers';
-import { adminDb, adminAuth } from '@/lib/firebase/admin';
+import { adminFirestore, adminAuth } from '@/lib/firebase/admin';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-04-10',
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     try {
         // 3. Atualiza o banco de dados e os Custom Claims
         const planName = await getPlanFromPriceId(priceId);
-        const tenantRef = adminDb.collection('tenants').doc(tenantId);
+        const tenantRef = adminFirestore.collection('tenants').doc(tenantId);
 
         // Atualiza o documento do tenant no Firestore
         await tenantRef.update({

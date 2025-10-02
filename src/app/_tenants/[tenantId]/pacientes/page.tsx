@@ -1,7 +1,7 @@
 // src/app/_tenants/[tenantId]/pacientes/page.tsx
 
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { adminDb } from '@/lib/firebase/admin'; // Usando o adminDb no servidor
+import { adminFirestore } from '@/lib/firebase/admin'; // Usando o adminFirestore no servidor
 import { baseConverter, BaseModel } from '@/lib/firestore/converters';
 import { PacientesClientView } from './_components/pacientes-client-view';
 import { Paciente } from '@/types/paciente';
@@ -14,7 +14,7 @@ async function getPacientes(tenantId: string): Promise<PacienteModel[]> {
   if (!tenantId) return [];
 
   try {
-    const pacientesRef = collection(adminDb, `tenants/${tenantId}/pacientes`)
+    const pacientesRef = collection(adminFirestore, `tenants/${tenantId}/pacientes`)
                             .withConverter(baseConverter<PacienteModel>());
 
     // Você pode adicionar ordenação ou filtros aqui
@@ -47,5 +47,3 @@ export default async function PacientesPage({ params }: { params: { tenantId: st
   // Toda a lógica interativa foi movida para PacientesClientView.
   return <PacientesClientView pacientes={pacientes} tenantId={tenantId} />;
 }
-
-

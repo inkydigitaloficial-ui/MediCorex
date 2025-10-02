@@ -1,8 +1,117 @@
+
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import { addDays } from 'date-fns';
 
 admin.initializeApp();
 const db = admin.firestore();
+
+export const createTenantForNewUser = functions.region('southamerica-east1').auth.user().onCreate(async (user) => {
+  const { uid, displayName, email, photoURL } = user;
+  
+  if (!email) {
+    functions.logger.error(`Usuário ${uid} criado sem email.`);
+    return null;
+  }
+  
+  const name = displayName || email.split('@')[0];
+  const baseSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const tenantSlug = `${baseSlug}-${uid.slice(0, 5)}`;
+
+  const trialEndDate = addDays(new Date(), 7);
+
+  const batch = db.batch();
+
+  // 1. Documento do Tenant
+  const tenantRef = db.collection('tenants').doc(tenantSlug);
+  batch.set(tenantRef, {
+    name: `Clínica ${name}`,
+    ownerId: uid,
+    active: true,
+    plan: 'trial',
+    subscriptionStatus: 'trialing',
+    trialEnds: admin.firestore.Timestamp.fromDate(trialEndDate),
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  // 2. Documento de Perfil do Usuário
+  const userProfileRef = db.collection('users').doc(uid);
+  batch.set(userProfileRef, {
+    name: name,
+    email: email,
+    photoURL: photoURL || null,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  // 3. Documento de Associação Tenant-Usuário
+  const tenantUserRef = db.collection('tenant_users').doc(`${uid}_${tenantSlug}`);
+  batch.set(tenantUserRef, {
+    userId: uid,
+    tenantId: tenantSlug,
+    role: 'owner',
+  });
+
+  try {
+    await batch.commit();
+    functions.logger.info(`Tenant '${tenantSlug}' e perfil criados com sucesso para o usuário ${uid}.`);
+
+    // 4. Definir Custom Claims (CRUCIAL para segurança)
+    await admin.auth().setCustomUserClaims(uid, {
+      tenants: {
+        [tenantSlug]: 'owner'
+      }
+    });
+    functions.logger.info(`Custom claims definidos para o usuário ${uid}.`);
+    
+    return null;
+  } catch (error) {
+    functions.logger.error(`Falha ao criar tenant e perfil para o usuário ${uid}:`, error);
+    return null;
+  }
+});
+
+
+export const updateUserClaimsOnRoleChange = functions.region('southamerica-east1').firestore
+    .document('tenant_users/{tenantUserId}')
+    .onWrite(async (change, context) => {
+
+    const beforeData = change.before.data();
+    const afterData = change.after.data();
+
+    // Se a role não mudou, não faz nada
+    if (beforeData?.role === afterData?.role) {
+        return null;
+    }
+    
+    // Se o documento foi deletado, limpa os claims (lógica a ser implementada se necessário)
+    if (!afterData) {
+        return null;
+    }
+
+    const { userId, tenantId, role } = afterData;
+
+    try {
+        const user = await admin.auth().getUser(userId);
+        const currentClaims = user.customClaims || {};
+
+        const newClaims = {
+            ...currentClaims,
+            tenants: {
+                ...(currentClaims.tenants || {}),
+                [tenantId]: role,
+            }
+        };
+
+        await admin.auth().setCustomUserClaims(userId, newClaims);
+        functions.logger.info(`Claims atualizados para o usuário ${userId} no tenant ${tenantId}. Nova role: ${role}`);
+        return null;
+
+    } catch (error) {
+        functions.logger.error(`Falha ao atualizar claims para o usuário ${userId}:`, error);
+        return null;
+    }
+});
+
 
 export const onUserCreate = functions.region('southamerica-east1').auth.user().onCreate(async (user) => {
   const { uid, displayName, email } = user;
@@ -25,8 +134,7 @@ export const onUserCreate = functions.region('southamerica-east1').auth.user().o
   console.log(`Slug final gerado para o tenant: ${tenantId}`);
 
   // Preparar dados para o batch
-  const trialEnds = new Date();
-  trialEnds.setDate(trialEnds.getDate() + 7);
+  const trialEnds = addDays(new Date(), 7);
 
   const tenantData = {
     id: tenantId,

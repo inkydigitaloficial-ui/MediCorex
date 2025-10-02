@@ -54,4 +54,4 @@ function initializeAdminApp(): App {
 // Exporta as instâncias prontas para uso
 export const adminApp = initializeAdminApp();
 export const adminAuth = getAuth(adminApp);
-export const adminDb = getFirestore(adminApp);
+export const adminFirestore = getFirestore(adminApp);

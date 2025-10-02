@@ -1,6 +1,6 @@
 
 import { cookies } from 'next/headers';
-import { adminAuth, adminDb } from '@/lib/firebase/admin';
+import { adminAuth, adminFirestore } from '@/lib/firebase/admin';
 import { Tenant } from '@/types/tenant'; // Supondo que você tenha um tipo para Tenant
 
 // Definindo os tipos para a resposta da função
@@ -42,7 +42,7 @@ export async function getCurrentUser(tenantIdFromParams: string): Promise<AuthCo
     }
 
     // 3. Busca os dados do tenant no Firestore
-    const tenantDoc = await adminDb.collection('tenants').doc(tenantIdFromParams).get();
+    const tenantDoc = await adminFirestore.collection('tenants').doc(tenantIdFromParams).get();
     if (!tenantDoc.exists) {
       console.error(`Tenant com ID ${tenantIdFromParams} não foi encontrado no Firestore, embora o usuário tenha permissão.`);
       return null;

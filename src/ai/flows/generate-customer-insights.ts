@@ -4,7 +4,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 // ✅ Importa a instância do DB já inicializada e segura
-import { adminDb } from '@/lib/firebase/admin'; 
+import { adminFirestore } from '@/lib/firebase/admin'; 
 
 const TenantFlowInput = z.object({
   tenantId: z.string().min(1, "tenantId é obrigatório"),
@@ -40,11 +40,11 @@ const generateCustomerInsightsFlow = ai.defineFlow(
     const startTime = Date.now();
 
     try {
-      // ✅ Usa adminDb diretamente, sem reinicializar.
+      // ✅ Usa adminFirestore diretamente, sem reinicializar.
       const [tenantDoc, customerDoc] = await Promise.all([
-        adminDb.collection('tenants').doc(tenantId).get(),
+        adminFirestore.collection('tenants').doc(tenantId).get(),
         // CORREÇÃO: A coleção é 'pacientes', não 'customers' como estava antes.
-        adminDb.collection('tenants').doc(tenantId)
+        adminFirestore.collection('tenants').doc(tenantId)
           .collection('pacientes').doc(customerId).get()
       ]);
 
@@ -95,7 +95,7 @@ const generateCustomerInsightsFlow = ai.defineFlow(
       const endTime = Date.now();
       const analysisDuration = endTime - startTime;
 
-      const generationRef = await adminDb.collection('tenants').doc(tenantId)
+      const generationRef = await adminFirestore.collection('tenants').doc(tenantId)
         .collection('ai_generations').add({
           type: 'customer_insights',
           customerId: customerId,
