@@ -1,22 +1,22 @@
-
 'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth } from '@/lib/firebase/use-auth';
+import { db } from '@/lib/firebase/client';
+
 
 export default function SignupPage() {
   const auth = useAuth();
-  const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -30,7 +30,7 @@ export default function SignupPage() {
     const password = formData.get('password') as string;
     const phone = formData.get('phone') as string;
 
-    if (!auth || !firestore) {
+    if (!auth || !db) {
       toast({ title: 'Erro de inicialização', description: 'Serviços de autenticação ou banco de dados não estão disponíveis.', variant: 'destructive' });
       setLoading(false);
       return;
@@ -45,13 +45,13 @@ export default function SignupPage() {
       await updateProfile(user, { displayName: name });
       
       // 3. Salvar o perfil completo no Firestore, incluindo o telefone
-      const userProfileRef = doc(firestore, 'users', user.uid);
+      const userProfileRef = doc(db, 'users', user.uid);
       await setDoc(userProfileRef, {
         uid: user.uid,
         name: name,
         email: email,
         phone: phone || null, // Salva o telefone ou null se vazio
-        createdAt: new Date(),
+        createdAt: serverTimestamp(),
       });
       
       toast({ title: 'Conta criada!', description: 'Agora, vamos criar sua clínica.' });

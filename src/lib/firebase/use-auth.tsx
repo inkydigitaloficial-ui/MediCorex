@@ -18,8 +18,10 @@
           const unsubscribe = onIdTokenChanged(authInstance, async (user) => {
             if (user) {
               const token = await user.getIdToken();
+              // Define o cookie que será lido pelo middleware e server actions
               document.cookie = `firebaseIdToken=${token}; path=/;`;
             } else {
+              // Limpa o cookie no logout
               document.cookie = 'firebaseIdToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
             }
           });
@@ -33,4 +35,3 @@
       export const useAuth = () => {
         return useContext(AuthContext);
       };
-      

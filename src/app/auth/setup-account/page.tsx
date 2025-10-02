@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/firebase';
+import { useAuth } from '@/lib/firebase/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { findUserTenantAction } from '../actions';
 import { Loader2 } from 'lucide-react';
@@ -23,12 +22,18 @@ function SetupStatus() {
 }
 
 export default function SetupAccountPage() {
-  const { user } = useAuth();
+  const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    if (!auth) {
+      // Auth object might not be available immediately.
+      return;
+    }
+
+    const { user } = auth;
     if (!user) {
       // Se o usuário não estiver logado, aguarda ou redireciona
       const timer = setTimeout(() => {
@@ -82,7 +87,7 @@ export default function SetupAccountPage() {
     // Limpa o intervalo quando o componente é desmontado ou o tenant é encontrado
     return () => clearInterval(checkInterval);
 
-  }, [user, router, toast, attempt]);
+  }, [auth, router, toast, attempt]);
 
   return <SetupStatus />;
 }
