@@ -2,7 +2,7 @@
 'use client';
 
 import { useFormStatus } from 'react-dom';
-import { useEffect, useState, useActionState } from 'react';
+import { useEffect, useState, useActionState, Suspense } from 'react';
 import Link from 'next/link';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ function SubmitButton() {
   );
 }
 
-export default function LoginPage() {
+function LoginFormComponent() {
   const [state, formAction] = useActionState(loginAction, { error: null, success: false, tenantSlug: null });
   const { toast } = useToast();
   const searchParams = useSearchParams();
@@ -139,5 +139,14 @@ export default function LoginPage() {
         </CardFooter>
       </form>
     </Card>
+  );
+}
+
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginFormComponent />
+    </Suspense>
   );
 }

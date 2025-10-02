@@ -3,7 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
-import { AuthProvider, FirestoreProvider } from '@/firebase/hooks';
+import { FirebaseProvider } from '@/firebase/hooks'; // Alterado para o novo Provedor unificado
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 
@@ -29,12 +29,10 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className={cn("font-body antialiased", inter.variable, interHeadline.variable)}>
-        <FirestoreProvider>
-          <AuthProvider>
+        <FirebaseProvider>
             {children}
             <FirebaseErrorListener />
-          </AuthProvider>
-        </FirestoreProvider>
+        </FirebaseProvider>
         <Toaster />
       </body>
     </html>

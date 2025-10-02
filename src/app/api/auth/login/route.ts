@@ -1,4 +1,4 @@
-import { admin } from '@/lib/firebase/admin';
+import { adminAuth } from '@/lib/firebase/admin';
 import { SignJWT } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
     const { uid, tenants } = decodedToken;
 
     const claims = {
