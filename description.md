@@ -22,10 +22,9 @@ A seguir, a árvore de diretórios do projeto, destacando a organização dos pr
 │   │   │       ├── financeiro/
 │   │   │       └── pacientes/
 │   │   ├── api/
-│   │   │   ├── auth/
-│   │   │   │   └── verify-token/
-│   │   │   │       └── route.ts  // <-- Rota para verificação de token
-│   │   │   └── stripe/
+│   │   │   └── auth/
+│   │   │       └── verify-token/
+│   │   │           └── route.ts  // <-- Rota para verificação de token
 │   │   ├── auth/
 │   │   ├── escolha-seu-plano/
 │   │   └── payment/
@@ -36,8 +35,7 @@ A seguir, a árvore de diretórios do projeto, destacando a organização dos pr
 │   ├── hooks/
 │   ├── lib/
 │   │   ├── firebase/
-│   │   ├── firestore/
-│   │   └── stripe/
+│   │   └── firestore/
 │   ├── middleware/
 │   │   ├── chains/
 │   │   │   ├── auth-chain.ts

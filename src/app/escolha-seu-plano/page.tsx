@@ -1,14 +1,12 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Check, Loader2 } from 'lucide-react';
-import { createCheckoutSession } from '@/lib/stripe/actions';
 import { useToast } from '@/hooks/use-toast';
 
-// O PlanCard agora precisa de um `planId` e uma função para lidar com o clique.
 const PlanCard = ({ 
   title, 
   description, 
@@ -26,7 +24,7 @@ const PlanCard = ({
   features: string[], 
   recommended?: boolean, 
   planId: 'basico' | 'profissional' | 'enterprise',
-  onChoosePlan: (planId: 'basico' | 'profissional') => void,
+  onChoosePlan: (planId: 'basico' | 'profissional' | 'enterprise') => void,
   isPending: boolean,
   currentPlan: string | null
 }) => (
@@ -50,43 +48,45 @@ const PlanCard = ({
       </ul>
     </CardContent>
     <CardFooter>
-      {planId === 'enterprise' ? (
-        <Button asChild className="w-full" variant="secondary">
-            <a href="/contato">Entrar em Contato</a>
-        </Button>
-      ) : (
-        <Button 
-          className="w-full" 
-          onClick={() => onChoosePlan(planId as 'basico' | 'profissional')}
-          disabled={isPending && currentPlan === planId}
-        >
-          {isPending && currentPlan === planId ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (recommended ? 'Começar Agora' : 'Escolher Plano')}
-        </Button>
-      )}
+      <Button 
+        className="w-full" 
+        onClick={() => onChoosePlan(planId)}
+        disabled={isPending && currentPlan === planId}
+      >
+        {isPending && currentPlan === planId ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (recommended ? 'Começar Agora' : 'Escolher Plano')}
+      </Button>
     </CardFooter>
   </Card>
 );
 
 export default function EscolhaPlanoPage() {
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const handleChoosePlan = (planId: 'basico' | 'profissional') => {
+  const handleChoosePlan = (planId: 'basico' | 'profissional' | 'enterprise') => {
+    if (planId === 'enterprise') {
+      // Redirecionar para contato ou fazer outra ação
+      window.location.href = '/contato';
+      return;
+    }
+    
     setCurrentPlan(planId);
-    startTransition(async () => {
-      try {
-        await createCheckoutSession(planId);
-      } catch (error: any) {
-        console.error('Stripe checkout error:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Erro ao iniciar pagamento',
-          description: 'Não foi possível redirecionar para a página de pagamento. Tente novamente.',
-        });
-        setCurrentPlan(null); // Reseta o estado em caso de erro
-      }
+    setIsPending(true);
+    
+    toast({
+        title: 'Integração Pendente',
+        description: `A lógica de checkout para o plano ${planId} com Pagar.me será implementada.`,
     });
+
+    // Aqui entraria a lógica para chamar a API do Pagar.me
+    console.log(`Plano escolhido: ${planId}. Pronto para integrar com Pagar.me.`);
+
+    // Simulação de delay
+    setTimeout(() => {
+        setIsPending(false);
+        setCurrentPlan(null);
+    }, 2000);
   };
 
   return (
@@ -125,7 +125,7 @@ export default function EscolhaPlanoPage() {
             price="Contato"
             features={['Tudo do plano Profissional', 'Multi-unidades', 'API de integração', 'Gerente de Conta Dedicado']}
             planId="enterprise"
-            onChoosePlan={() => {}} // Não faz nada para o plano Enterprise
+            onChoosePlan={handleChoosePlan}
             isPending={isPending}
             currentPlan={currentPlan}
           />

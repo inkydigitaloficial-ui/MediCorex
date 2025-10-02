@@ -10,9 +10,8 @@
         "ownerId": { "type": "string", "description": "UID do usuário proprietário." },
         "active": { "type": "boolean", "description": "Se o tenant está ativo." },
         "plan": { "type": "string", "enum": ["trial", "basico", "essencial", "premium"], "description": "Plano de assinatura atual." },
-        "subscriptionStatus": { "type": "string", "enum": ["trialing", "active", "past_due", "canceled", "unpaid"], "description": "Status da assinatura no Stripe." },
+        "subscriptionStatus": { "type": "string", "enum": ["trialing", "active", "past_due", "canceled", "unpaid"], "description": "Status da assinatura no Pagar.me." },
         "trialEnds": { "type": "string", "format": "date-time", "description": "Timestamp de quando o período de teste termina." },
-        "stripeCustomerId": { "type": "string", "description": "ID do cliente no gateway de pagamento (Stripe)." },
         "settings": {
           "type": "object",
           "properties": {
