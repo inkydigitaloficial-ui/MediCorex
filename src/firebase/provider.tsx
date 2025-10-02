@@ -1,39 +1,36 @@
-Perfeit'use client';
+'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { getAuth, onIdTokenChanged, User, Auth } from 'firebase/auth';
-import { app } from './client';
+import { onIdTokenChanged, User, Auth } from 'firebase/auth';
+import { auth } from '@/lib/firebase/client'; // Importa a instância auth diretamente
 import { setCookie, destroyCookie } from 'nookies';
 import { Loader } from 'lucide-react';
 
-// O contexto agora irá armazenar tanto a instância do Auth quanto o objeto do usuário.
 interface AuthContextType {
-  auth: Auth | null;
+  auth: Auth;
   user: User | null;
   loading: boolean;
 }
 
+// O valor padrão do contexto é ajustado para refletir a nova estrutura
 const AuthContext = createContext<AuthContextType>({ 
-  auth: null, 
+  auth: auth, // Passa a instância importada
   user: null, 
   loading: true 
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const [auth, setAuth] = useState<Auth | null>(null);
+    // O estado do usuário e do carregamento permanece
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const authInstance = getAuth(app);
-        setAuth(authInstance);
-
-        const unsubscribe = onIdTokenChanged(authInstance, async (user) => {
+        // Não é mais necessário obter a instância do auth aqui, pois ela é importada diretamente
+        const unsubscribe = onIdTokenChanged(auth, async (user) => {
             setUser(user);
             setLoading(false);
             if (user) {
                 const token = await user.getIdToken();
-                // O cookie é útil para renderização no servidor e Server Actions
                 setCookie(null, 'firebaseIdToken', token, {
                     maxAge: 30 * 24 * 60 * 60, // 30 dias
                     path: '/',
@@ -43,8 +40,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
         });
 
+        // A função de limpeza do useEffect cancela a inscrição no listener
         return () => unsubscribe();
-    }, []);
+    }, []); // O array de dependências vazio garante que o efeito rode apenas uma vez
 
     if (loading) {
       return (
@@ -54,11 +52,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       );
     }
 
-    // Fornece o estado de autenticação, usuário e carregamento para toda a aplicação.
+    // O valor do provedor agora inclui a instância auth importada
     return <AuthContext.Provider value={{ auth, user, loading }}>{children}</AuthContext.Provider>;
 };
 
-// Hook customizado para acessar facilmente o contexto de autenticação.
+// O hook customizado para usar o contexto permanece o mesmo
 export const useAuth = () => {
     return useContext(AuthContext);
 };

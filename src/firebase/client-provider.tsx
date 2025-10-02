@@ -1,26 +1,22 @@
 'use client';
 
-import React, { useMemo, type ReactNode } from 'react';
-import { FirebaseProvider } from '@/firebase/provider';
-import { initializeFirebase } from '@/firebase';
+import React, { type ReactNode } from 'react';
+import { AuthProvider } from '@/firebase/provider';
 
 interface FirebaseClientProviderProps {
   children: ReactNode;
 }
 
+/**
+ * Este componente serve como um ponto de entrada para os providers do lado do cliente.
+ * Atualmente, ele apenas encapsula o AuthProvider, que gerencia a sessão de autenticação do usuário.
+ */
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
-  const firebaseServices = useMemo(() => {
-    // Initialize Firebase on the client side, once per component mount.
-    return initializeFirebase();
-  }, []); // Empty dependency array ensures this runs only once on mount
-
+  // O AuthProvider agora é auto-contido e não precisa mais receber props de inicialização.
+  // Ele obtém a instância do app Firebase diretamente do @/firebase/client.
   return (
-    <FirebaseProvider
-      firebaseApp={firebaseServices.firebaseApp}
-      auth={firebaseServices.auth}
-      firestore={firebaseServices.firestore}
-    >
+    <AuthProvider>
       {children}
-    </FirebaseProvider>
+    </AuthProvider>
   );
 }

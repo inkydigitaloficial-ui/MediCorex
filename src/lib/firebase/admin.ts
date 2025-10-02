@@ -1,27 +1,57 @@
-'use server';
 
-import { initializeApp, getApp, getApps, App } from 'firebase-admin/app';
+import { App, getApp, getApps, initializeApp, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 
-// Função para inicializar o app do Firebase Admin de forma idempotente.
-// Isso garante que, não importa quantas vezes este módulo seja importado,
-// a inicialização ocorra apenas uma vez.
-function createFirebaseAdminApp(): App {
-  const apps = getApps();
-  if (apps.length > 0) {
-    // Retorna a instância existente se já foi inicializada.
+/**
+ * Valida as variáveis de ambiente do Firebase Admin e retorna o objeto de configuração.
+ * Lança um erro se alguma variável essencial estiver faltando.
+ */
+function getAdminConfig() {
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+  if (!projectId || !clientEmail || !privateKey) {
+    throw new Error(
+      '[Firebase Admin] Variáveis de ambiente críticas não configuradas. Verifique FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL e FIREBASE_PRIVATE_KEY.'
+    );
+  }
+
+  return {
+    credential: cert({
+      projectId,
+      clientEmail,
+      privateKey: privateKey.replace(/\\n/g, '\n'), // Substitui literais \n por quebras de linha
+    }),
+  };
+}
+
+/**
+ * Inicializa o Firebase Admin SDK usando o padrão Singleton para evitar múltiplas instâncias.
+ * Inclui tratamento de erro detalhado.
+ */
+function initializeAdminApp(): App {
+  // Se já existe uma instância, retorna ela
+  if (getApps().length > 0) {
     return getApp();
   }
 
-  // Se nenhuma instância existir, inicializa uma nova.
-  // O SDK Admin buscará automaticamente as credenciais do ambiente
-  // (e.g., GOOGLE_APPLICATION_CREDENTIALS ou FIREBASE_CONFIG).
-  return initializeApp();
+  console.log('[Firebase Admin] Inicializando o SDK...');
+
+  try {
+    // Tenta inicializar com as configurações validadas
+    const adminApp = initializeApp(getAdminConfig());
+    console.log('[Firebase Admin] SDK inicializado com sucesso.');
+    return adminApp;
+  } catch (error) {
+    console.error('[Firebase Admin] Erro fatal ao inicializar o SDK:', error);
+    // Em um cenário de erro, lançar a exceção impede a aplicação de continuar em um estado inválido.
+    throw error;
+  }
 }
 
-// Inicializa e exporta as instâncias como singletons.
-// Estes serão os únicos pontos de acesso para os serviços do Firebase Admin no lado do servidor.
-export const adminApp = createFirebaseAdminApp();
+// Exporta as instâncias prontas para uso
+export const adminApp = initializeAdminApp();
 export const adminAuth = getAuth(adminApp);
-export const adminFirestore = getFirestore(adminApp);
+export const adminDb = getFirestore(adminApp);

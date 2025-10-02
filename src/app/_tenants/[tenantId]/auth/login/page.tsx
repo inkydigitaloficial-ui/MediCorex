@@ -11,10 +11,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { loginAction } from '../actions';
+import { loginAction } from '@/app/auth/actions';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/firebase';
-import { createSessionCookie } from '../session/actions'; // 1. Importa a nova Server Action
+import { createSessionCookie } from '@/app/auth/session/actions';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -25,7 +25,7 @@ function SubmitButton() {
   );
 }
 
-export default function LoginPage() {
+export default function TenantLoginPage() {
   const [state, formAction] = useActionState(loginAction, { error: null, success: false, tenantSlug: null });
   const { toast } = useToast();
   const searchParams = useSearchParams();
@@ -48,24 +48,17 @@ export default function LoginPage() {
       setIsClientSigningIn(true);
       signInWithEmailAndPassword(auth, email, password)
         .then(async (userCredential) => {
-          // 2. Após o login, obtém o ID token do usuário.
           const idToken = await userCredential.user.getIdToken();
-
-          // 3. Envia o token para a Server Action criar o cookie seguro.
           const sessionResult = await createSessionCookie(idToken);
 
           if (sessionResult.status === 'success') {
-            // 4. Apenas após o cookie ser criado com sucesso, o redirecionamento ocorre.
             toast({
               title: 'Login bem-sucedido!',
               description: 'Redirecionando para seu painel...',
             });
-            const protocol = window.location.protocol;
-            const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || window.location.host;
-            
-            window.location.href = `${protocol}//${state.tenantSlug}.${rootDomain}`;
+            // Para login dentro de um tenant, redireciona para o dashboard do tenant
+            window.location.href = '/dashboard';
           } else {
-            // Se a criação do cookie falhar, lança um erro.
             throw new Error(sessionResult.message);
           }
         })
@@ -82,25 +75,15 @@ export default function LoginPage() {
     }
   }, [state, auth, email, password, toast]);
   
-  useEffect(() => {
-    if (searchParams.get('signup') === 'success') {
-      toast({
-        title: 'Cadastro realizado!',
-        description: 'Sua clínica está sendo criada. Aguarde um instante e faça login.',
-        duration: 5000,
-      });
-    }
-  }, [searchParams, toast]);
-
   const { pending } = useFormStatus();
   const isDisabled = pending || isClientSigningIn;
 
   return (
     <Card>
       <CardHeader className="space-y-1 text-center">
-        <CardTitle className="text-2xl font-headline">Login</CardTitle>
+        <CardTitle className="text-2xl font-headline">Acessar Clínica</CardTitle>
         <CardDescription>
-          Acesse sua conta para gerenciar sua clínica.
+          Faça login para continuar para o seu painel.
         </CardDescription>
       </CardHeader>
       <form action={formAction}>
@@ -133,12 +116,6 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
           <SubmitButton />
-          <p className="text-xs text-muted-foreground text-center">
-            Não tem uma conta?{' '}
-            <Link href="/auth/signup" className="underline hover:text-primary">
-              Cadastre-se e crie sua clínica
-            </Link>
-          </p>
         </CardFooter>
       </form>
     </Card>

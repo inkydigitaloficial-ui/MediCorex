@@ -1,35 +1,26 @@
+
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
-export function initializeFirebase() {
-  if (!getApps().length) {
-    let firebaseApp;
-    try {
-      firebaseApp = initializeApp();
-    } catch (e) {
-      if (process.env.NODE_ENV === "production") {
-        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
-      }
-      firebaseApp = initializeApp(firebaseConfig);
-    }
+let app: FirebaseApp;
 
-    return getSdks(firebaseApp);
-  }
-
-  return getSdks(getApp());
+// Garante que o Firebase seja inicializado apenas uma vez.
+// Este é o padrão recomendado para Next.js.
+if (!getApps().length) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApp(); // Usa a instância existente se já foi criada.
 }
 
-export function getSdks(firebaseApp: FirebaseApp) {
-  return {
-    firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp)
-  };
-}
+const auth: Auth = getAuth(app);
+const firestore: Firestore = getFirestore(app);
 
-export const { firestore: db } = initializeFirebase();
+// Exporta as instâncias de serviço para serem usadas em toda a aplicação cliente.
+export { app, auth, firestore };
+
+// Mantém a exportação 'db' para compatibilidade com qualquer código existente.
+export const db = firestore;
