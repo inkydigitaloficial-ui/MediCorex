@@ -1,56 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AuthChain } from './middleware/chains/auth-chain';
-import { TenantChain } from './middleware/chains/tenant-chain';
-import { ErrorHandler } from './middleware/handlers/error-handler';
-import { DomainUtils } from './middleware/utils/domain-utils';
-import { RouteUtils } from './middleware/utils/route-utils';
-import { MiddlewareContext } from './middleware/types';
+import { jwtVerify } from 'jose';
 
-// Inicializa as chains
-const authChain = new AuthChain();
-const tenantChain = new TenantChain();
+const JWT_SECRET = process.env.JWT_SECRET as string;
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+export async function middleware(req: NextRequest) {
+  const sessionCookie = req.cookies.get('session');
 
-  if (RouteUtils.isApiRoute(pathname) || RouteUtils.isStaticAsset(pathname)) {
-    return NextResponse.next();
+  if (!sessionCookie) {
+    return NextResponse.redirect(new URL('/login', req.url));
   }
 
   try {
-    // 1. SETUP DO CONTEXTO INICIAL
-    const hostname = request.headers.get('host') || '';
-    const tenantId = DomainUtils.extractSubdomain(hostname);
+    const secret = new TextEncoder().encode(JWT_SECRET);
+    const { payload } = await jwtVerify(sessionCookie.value, secret);
     
-    const context: MiddlewareContext = {
-      request,
-      response: NextResponse.next(),
-      tenantId: tenantId,
-      user: null,
-      config: {}
-    };
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set('x-user-claims', JSON.stringify(payload));
 
-    // 2. CHAIN DE AUTENTICAÇÃO
-    const authResult = await authChain.execute(context);
-    if (!authResult.shouldContinue) {
-      return authResult.response!;
-    }
-
-    // 3. CHAIN DE LÓGICA DO TENANT
-    const tenantResult = await tenantChain.execute(context);
-    if (!tenantResult.shouldContinue) {
-      return tenantResult.response!;
-    }
-    
-    return tenantResult.response || context.response || NextResponse.next();
-
-  } catch (error) {
-    return ErrorHandler.handle(error, request);
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
+  } catch (err) {
+    return NextResponse.redirect(new URL('/login', req.url));
   }
 }
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico).*)(/)?',
+    '/((?!_next/static|_next/image|favicon.ico|login|api/auth|$).*)',
   ],
 };
