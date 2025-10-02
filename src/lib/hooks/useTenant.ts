@@ -4,7 +4,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/hooks';
-import { db } from '@/lib/firebase/client';
 
 interface TenantContextType {
   tenantId: string;
@@ -22,15 +21,17 @@ export function TenantProvider({
   children: ReactNode;
   value: { tenantId: string; tenantData: any };
 }) {
+  const firestore = useFirestore();
   const [tenantData, setTenantData] = useState(value.tenantData);
   const [loading, setLoading] = useState(!value.tenantData); // Initial loading state
   const [error, setError] = useState<Error | null>(null);
 
   // Real-time listener for tenant data updates
   useEffect(() => {
+    if (!firestore) return;
     setLoading(true);
     const unsubscribe = onSnapshot(
-      doc(db, 'tenants', value.tenantId),
+      doc(firestore, 'tenants', value.tenantId),
       (snapshot) => {
         if (snapshot.exists()) {
           setTenantData({ id: snapshot.id, ...snapshot.data() });
@@ -47,7 +48,7 @@ export function TenantProvider({
     );
 
     return () => unsubscribe();
-  }, [value.tenantId]);
+  }, [firestore, value.tenantId]);
 
   const contextValue = {
     tenantId: value.tenantId,

@@ -96,7 +96,7 @@ function PacienteListItem({ paciente, tenantId }: { paciente: Paciente, tenantId
                 <p className="text-sm text-muted-foreground">{paciente.email}</p>
             </div>
             <Button asChild variant="outline" size="sm">
-                <Link href={`/_tenants/${tenantId}/pacientes/${paciente.id}`}>
+                <Link href={`/pacientes/${paciente.id}`}>
                     Ver Prontuário
                     <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
