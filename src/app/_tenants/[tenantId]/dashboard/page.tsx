@@ -1,8 +1,19 @@
 
+'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, Calendar, Bell, ArrowRight } from "lucide-react";
-import Image from "next/image";
+import { Users, Calendar, BarChart2, TrendingUp, Zap } from "lucide-react";
+import { Area, AreaChart, Bar, BarChart, ResponsiveContainer } from "recharts"
+import { useTenant } from "@/components/providers/tenant-provider";
+
+const chartData = [
+  { name: 'Jan', value: 400 },
+  { name: 'Feb', value: 300 },
+  { name: 'Mar', value: 600 },
+  { name: 'Apr', value: 800 },
+  { name: 'May', value: 500 },
+  { name: 'Jun', value: 700 },
+];
 
 interface TenantDashboardProps {
   params: {
@@ -11,98 +22,95 @@ interface TenantDashboardProps {
 }
 
 export default function TenantDashboard({ params }: TenantDashboardProps) {
+  const { tenant } = useTenant();
+
   return (
-    <div className="flex flex-col space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold text-foreground font-headline">
-          Dashboard da Clínica: <span className="font-bold text-primary">{params.tenantId}</span>
+    <div className="flex flex-col space-y-8">
+      <div>
+        <p className="text-muted-foreground">Visão Geral da Clínica</p>
+        <h1 className="text-3xl font-bold tracking-tight font-headline text-foreground">
+          {tenant?.name || `Dashboard da Clínica`}
         </h1>
       </div>
       
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="hover:border-primary/50 transition-colors">
+      {/* Glassmorphism Header Cards */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="bg-background/60 backdrop-blur-sm border-white/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base font-medium">Total de Pacientes</CardTitle>
-            <Users className="h-5 w-5 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Total de Pacientes</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">+23</div>
+            <div className="text-2xl font-bold">+23</div>
             <p className="text-xs text-muted-foreground">+5 no último mês</p>
           </CardContent>
         </Card>
-
-        <Card className="hover:border-primary/50 transition-colors">
+        <Card className="bg-background/60 backdrop-blur-sm border-white/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base font-medium">Agendamentos</CardTitle>
-            <Calendar className="h-5 w-5 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Agendamentos (Mês)</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">+78</div>
-            <p className="text-xs text-muted-foreground">+12 na última semana</p>
+            <div className="text-2xl font-bold">+78</div>
+            <p className="text-xs text-muted-foreground">+12% vs. mês passado</p>
           </CardContent>
         </Card>
-
-        <Card className="hover:border-primary/50 transition-colors">
+        <Card className="bg-background/60 backdrop-blur-sm border-white/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base font-medium">Alertas Pendentes</CardTitle>
-            <Bell className="h-5 w-5 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Novos Pacientes</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">3</div>
-            <p className="text-xs text-muted-foreground">2 novos hoje</p>
+            <div className="text-2xl font-bold">+5</div>
+            <p className="text-xs text-muted-foreground">Neste mês</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-primary/10 border-primary/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-primary">Ações Rápidas</CardTitle>
+            <Zap className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+             <div className="text-2xl font-bold text-primary">Novo Agendamento</div>
+            <p className="text-xs text-primary/80">Clique para adicionar</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-5">
-        <Card className="lg:col-span-3">
+      <div className="grid gap-8 lg:grid-cols-2">
+        <Card>
           <CardHeader>
-            <CardTitle className="font-headline">Próximos Pacientes</CardTitle>
-            <CardDescription>Visualização rápida dos seus próximos agendamentos.</CardDescription>
+            <CardTitle className="font-headline">Evolução de Pacientes</CardTitle>
+            <CardDescription>Novos pacientes cadastrados nos últimos 6 meses.</CardDescription>
           </CardHeader>
-          <CardContent>
-            {/* Placeholder for upcoming patient list */}
-            <div className="flex flex-col gap-4">
-                {[
-                  { name: 'Olivia Carter', time: '09:00 AM', reason: 'Consulta de Rotina', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d' },
-                  { name: 'Liam Johnson', time: '10:30 AM', reason: 'Retorno', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026705d' },
-                  { name: 'Sophia Martinez', time: '11:15 AM', reason: 'Primeira Consulta', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026706d' },
-                ].map(patient => (
-                  <div key={patient.name} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/80 transition-colors">
-                      <div className="flex items-center gap-4">
-                          <Image src={patient.avatar} alt={patient.name} width={40} height={40} className="rounded-full" />
-                          <div>
-                              <p className="font-semibold">{patient.name}</p>
-                              <p className="text-sm text-muted-foreground">{patient.reason}</p>
-                          </div>
-                      </div>
-                      <div className="text-right">
-                          <p className="font-medium text-primary">{patient.time}</p>
-                          <ArrowRight className="h-4 w-4 text-muted-foreground inline-block" />
-                      </div>
-                  </div>
-                ))}
-            </div>
+          <CardContent className="h-[250px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <Area type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2} fillOpacity={1} fill="url(#colorUv)" />
+              </AreaChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
-        <Card className="relative lg:col-span-2 overflow-hidden rounded-2xl flex flex-col justify-between p-6 bg-blue-600 text-white">
-          <div className="absolute inset-0 bg-black/20 z-0">
-             <Image src="https://picsum.photos/seed/dashboard-promo/600/400" alt="Abstract background" layout="fill" objectFit="cover" className="opacity-30" data-ai-hint="abstract background" />
-          </div>
-          <div className="relative z-10">
-            <div className="inline-block px-3 py-1 text-xs font-semibold bg-white/20 backdrop-blur-sm rounded-full mb-3">
-              Lembretes Automáticos
-            </div>
-            <h3 className="text-2xl font-bold font-headline">Mantenha-se em dia com sua saúde!</h3>
-            <p className="text-sm text-blue-100 mt-2">Receba lembretes automáticos para todas as suas consultas.</p>
-          </div>
-          <button className="relative z-10 self-start mt-4 inline-flex items-center text-sm font-semibold">
-            Ativar agora <ArrowRight className="ml-2 h-4 w-4" />
-          </button>
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-headline">Consultas por Período</CardTitle>
+            <CardDescription>Volume de consultas realizadas.</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[250px] w-full">
+             <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                    <Bar dataKey="value" style={{ fill: "hsl(var(--primary))", opacity: 0.9 }} radius={[4, 4, 0, 0]} />
+                </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
         </Card>
       </div>
-
     </div>
   );
 }
-

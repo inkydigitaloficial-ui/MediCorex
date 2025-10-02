@@ -9,73 +9,73 @@ body {
 
 @layer base {
   :root {
-    --background: 240 10% 97%;
-    --foreground: 240 10% 15%;
-    --card: 240 10% 100%;
-    --card-foreground: 240 10% 15%;
-    --popover: 240 10% 100%;
-    --popover-foreground: 240 10% 15%;
-    --primary: 226 70% 50%;
+    --background: 220 20% 98%;
+    --foreground: 220 15% 25%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 25%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 25%;
+    --primary: 221 83% 53%; /* Azul Forte */
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 10% 90%;
-    --secondary-foreground: 240 10% 15%;
-    --muted: 240 10% 90%;
-    --muted-foreground: 240 10% 45%;
-    --accent: 240 10% 85%;
-    --accent-foreground: 240 10% 15%;
+    --secondary: 220 15% 90%;
+    --secondary-foreground: 220 15% 25%;
+    --muted: 220 15% 90%;
+    --muted-foreground: 220 10% 45%;
+    --accent: 220 15% 94%;
+    --accent-foreground: 220 15% 25%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 10% 88%;
-    --input: 240 10% 88%;
-    --ring: 226 70% 50%;
-    --chart-1: 12 76% 61%;
+    --border: 220 15% 88%;
+    --input: 220 15% 88%;
+    --ring: 221 83% 53%;
+    --chart-1: 221 83% 53%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.75rem;
-    --sidebar-background: 240 10% 12%;
-    --sidebar-foreground: 240 10% 85%;
-    --sidebar-primary: 226 70% 65%;
+    --radius: 0.8rem; /* Cantos mais arredondados */
+
+    /* Sidebar Variables */
+    --sidebar-background: 220 15% 15%;
+    --sidebar-foreground: 220 10% 85%;
+    --sidebar-primary: 221 83% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 226 70% 50%;
+    --sidebar-accent: 220 15% 25%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 240 10% 20%;
-    --sidebar-ring: 226 70% 50%;
+    --sidebar-border: 220 10% 30%;
+    --sidebar-ring: 221 83% 53%;
   }
+
   .dark {
-    --background: 232 20% 10%;
-    --foreground: 225 15% 85%;
-    --card: 232 20% 12%;
-    --card-foreground: 225 15% 85%;
-    --popover: 232 20% 12%;
-    --popover-foreground: 225 15% 85%;
-    --primary: 231 60% 70%;
-    --primary-foreground: 232 20% 10%;
-    --secondary: 232 20% 20%;
-    --secondary-foreground: 225 15% 85%;
-    --muted: 232 20% 20%;
-    --muted-foreground: 225 15% 65%;
-    --accent: 232 20% 30%;
-    --accent-foreground: 225 15% 85%;
+    --background: 220 15% 10%;
+    --foreground: 220 10% 85%;
+    --card: 220 15% 15%;
+    --card-foreground: 220 10% 85%;
+    --popover: 220 15% 15%;
+    --popover-foreground: 220 10% 85%;
+    --primary: 221 83% 65%;
+    --primary-foreground: 220 15% 10%;
+    --secondary: 220 15% 25%;
+    --secondary-foreground: 220 10% 85%;
+    --muted: 220 15% 25%;
+    --muted-foreground: 220 10% 65%;
+    --accent: 220 15% 30%;
+    --accent-foreground: 220 10% 85%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 232 20% 25%;
-    --input: 232 20% 25%;
-    --ring: 231 60% 70%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 232 20% 10%;
-    --sidebar-foreground: 225 15% 85%;
-    --sidebar-primary: 231 60% 70%;
-    --sidebar-primary-foreground: 232 20% 10%;
-    --sidebar-accent: 231 60% 70%;
-    --sidebar-accent-foreground: 232 20% 10%;
-    --sidebar-border: 232 20% 25%;
-    --sidebar-ring: 231 60% 70%;
+    --border: 220 15% 30%;
+    --input: 220 15% 30%;
+    --ring: 221 83% 65%;
+    
+    /* Sidebar Dark Variables */
+    --sidebar-background: 220 15% 10%;
+    --sidebar-foreground: 220 10% 85%;
+    --sidebar-primary: 221 83% 65%;
+    --sidebar-primary-foreground: 220 15% 10%;
+    --sidebar-accent: 220 15% 20%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 220 15% 25%;
+    --sidebar-ring: 221 83% 65%;
   }
 }
 
@@ -85,5 +85,9 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+  
+  .glassmorphism-gradient {
+    background-image: linear-gradient(to top right, hsl(var(--primary) / 0.1), hsl(var(--primary) / 0));
   }
 }

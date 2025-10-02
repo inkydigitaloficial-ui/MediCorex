@@ -62,9 +62,9 @@ export default async function TenantLayout({ children, params }: Props) {
       <SidebarProvider>
         <Sidebar>
           <SidebarHeader>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <Logo className="h-7 w-7 text-primary" />
-              <h1 className="text-xl font-semibold font-headline">{tenant.name || 'MediCorex'}</h1>
+              <h1 className="text-xl font-semibold font-headline tracking-tight">{tenant.name || 'MediCorex'}</h1>
             </div>
           </SidebarHeader>
           <SidebarContent>
@@ -94,16 +94,18 @@ export default async function TenantLayout({ children, params }: Props) {
           </SidebarFooter>
         </Sidebar>
         <SidebarInset>
-          <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
-            <SidebarTrigger className="md:hidden" />
-            <div className="w-full flex-1">
-              {/* Espaço para breadcrumbs ou título da página */}
-            </div>
-          </header>
-          {role === 'owner' && tenant.subscriptionStatus === 'trialing' && trialEndsDate && <TrialBanner trialEnds={trialEndsDate} />}
-          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-            {children}
-          </main>
+          <div className="h-full w-full bg-background/95 backdrop-blur-sm">
+            <header className="flex h-14 items-center gap-4 border-b bg-transparent px-4 lg:h-[60px] lg:px-6">
+                <SidebarTrigger className="md:hidden" />
+                <div className="w-full flex-1">
+                {/* Espaço para breadcrumbs ou título da página */}
+                </div>
+            </header>
+            {role === 'owner' && tenant.subscriptionStatus === 'trialing' && trialEndsDate && <TrialBanner trialEnds={trialEndsDate} />}
+            <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+                {children}
+            </main>
+           </div>
         </SidebarInset>
       </SidebarProvider>
     </TenantProvider>

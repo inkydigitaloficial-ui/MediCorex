@@ -5,7 +5,6 @@ import { useFormStatus } from 'react-dom';
 import { useEffect, useState, useActionState } from 'react';
 import Link from 'next/link';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,7 +15,6 @@ import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/firebase/use-auth';
 import { createSessionCookie } from '../session/actions';
 import { Loader2 } from 'lucide-react';
-import { Logo } from '@/components/logo';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -93,61 +91,53 @@ export default function LoginPage() {
   const isDisabled = pending || isClientSigningIn;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <div className="w-full max-w-sm space-y-6">
-            <div className="flex justify-center">
-                <Link href="/" className="flex items-center gap-2 text-primary">
-                    <Logo className="h-8 w-8" />
-                    <span className="text-2xl font-semibold font-headline">MediCorex</span>
-                </Link>
-            </div>
-            <Card>
-              <CardHeader className="space-y-1 text-center">
-                <CardTitle className="text-2xl font-headline">Acessar sua Clínica</CardTitle>
-                <CardDescription>
-                  Acesse sua conta para gerenciar sua clínica.
-                </CardDescription>
-              </CardHeader>
-              <form action={formAction}>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input 
-                      id="email" 
-                      name="email" 
-                      type="email" 
-                      placeholder="seu@email.com" 
-                      required 
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      disabled={isDisabled}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Senha</Label>
-                    <Input 
-                      id="password" 
-                      name="password" 
-                      type="password" 
-                      required 
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      disabled={isDisabled}
-                    />
-                  </div>
-                </CardContent>
-                <CardFooter className="flex flex-col gap-4">
-                  <SubmitButton />
-                  <p className="text-xs text-muted-foreground text-center">
-                    Não tem uma conta?{' '}
-                    <Link href="/auth/signup" className="underline font-medium hover:text-primary">
-                      Comece seu teste gratuito
-                    </Link>
-                  </p>
-                </CardFooter>
-              </form>
-            </Card>
-        </div>
-    </div>
+    <Card className="bg-background/80 backdrop-blur-lg border-white/20 shadow-xl">
+      <CardHeader className="space-y-1 text-center">
+        <CardTitle className="text-2xl font-headline">Acessar sua Clínica</CardTitle>
+        <CardDescription>
+          Acesse sua conta para gerenciar sua clínica.
+        </CardDescription>
+      </CardHeader>
+      <form action={formAction}>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input 
+              id="email" 
+              name="email" 
+              type="email" 
+              placeholder="seu@email.com" 
+              required 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isDisabled}
+              className="bg-background/70"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Senha</Label>
+            <Input 
+              id="password" 
+              name="password" 
+              type="password" 
+              required 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isDisabled}
+              className="bg-background/70"
+            />
+          </div>
+        </CardContent>
+        <CardFooter className="flex flex-col gap-4">
+          <SubmitButton />
+          <p className="text-xs text-muted-foreground text-center">
+            Não tem uma conta?{' '}
+            <Link href="/auth/signup" className="underline font-medium hover:text-primary">
+              Comece seu teste gratuito
+            </Link>
+          </p>
+        </CardFooter>
+      </form>
+    </Card>
   );
 }
