@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/firebase/use-auth';
+import { useAuth } from '@/firebase/hooks';
 import { useToast } from '@/hooks/use-toast';
 import { findUserTenantAction } from '../actions';
 import { Loader2 } from 'lucide-react';

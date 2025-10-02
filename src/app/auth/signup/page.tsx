@@ -12,8 +12,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/lib/firebase/use-auth';
-import { db } from '@/lib/firebase/client';
+import { useAuth } from '@/firebase/hooks';
+import { firebaseClient } from '@/lib/firebase/client';
 import { Loader2 } from 'lucide-react';
 
 export default function SignupPage() {
@@ -31,8 +31,8 @@ export default function SignupPage() {
     const password = formData.get('password') as string;
     const phone = formData.get('phone') as string;
 
-    if (!auth || !db) {
-      toast({ title: 'Erro de inicialização', description: 'Serviços de autenticação ou banco de dados não estão disponíveis.', variant: 'destructive' });
+    if (!auth) {
+      toast({ title: 'Erro de inicialização', description: 'Serviços de autenticação não estão disponíveis.', variant: 'destructive' });
       setLoading(false);
       return;
     }
@@ -46,7 +46,7 @@ export default function SignupPage() {
       await updateProfile(user, { displayName: name });
       
       // 3. Salvar o perfil completo no Firestore, incluindo o telefone
-      const userProfileRef = doc(db, 'users', user.uid);
+      const userProfileRef = doc(firebaseClient.db, 'users', user.uid);
       await setDoc(userProfileRef, {
         uid: user.uid,
         name: name,

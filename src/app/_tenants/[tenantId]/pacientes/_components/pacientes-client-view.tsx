@@ -47,22 +47,23 @@ function AddPacienteDialog({ tenantId, onOpenChange, open }: { tenantId: string;
 
     const pacientesCollectionRef = collection(firestore, `tenants/${tenantId}/pacientes`).withConverter(baseConverter<PacienteModel>());
     
-    try {
-      await addDoc(pacientesCollectionRef, data as Omit<PacienteModel, 'id'>);
-      toast({
-        title: 'Paciente adicionado!',
-        description: `${data.nome} foi adicionado à sua lista de pacientes.`,
-      });
-      form.reset();
-      onOpenChange(false);
-      router.refresh(); // Invalida o cache do Server Component, buscando os dados atualizados
-    } catch (serverError) {
+    addDoc(pacientesCollectionRef, data as Omit<PacienteModel, 'id'>)
+    .then(() => {
+        toast({
+            title: 'Paciente adicionado!',
+            description: `${data.nome} foi adicionado à sua lista de pacientes.`,
+        });
+        form.reset();
+        onOpenChange(false);
+        router.refresh(); // Invalida o cache do Server Component, buscando os dados atualizados
+    })
+    .catch((serverError) => {
       const permissionError = new FirestorePermissionError({
         path: pacientesCollectionRef.path,
         operation: 'create',
       });
       errorEmitter.emit('permission-error', permissionError);
-    }
+    });
   };
 
   return (

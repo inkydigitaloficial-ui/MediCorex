@@ -19,6 +19,12 @@ if (!getApps().length) {
   app = getApp();
 }
 
-export const firebaseClient = app;
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// Objeto singleton para exportar as instâncias
+export const firebaseClient = {
+  app: app,
+  auth: auth,
+  db: db,
+};

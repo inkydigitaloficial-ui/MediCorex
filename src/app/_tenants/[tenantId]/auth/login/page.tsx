@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { loginAction } from '@/app/auth/actions';
-import { useAuth } from '@/lib/firebase/use-auth';
+import { useAuth } from '@/firebase/hooks';
 import { createSessionCookie } from '@/app/auth/session/actions';
 import { Logo } from '@/components/logo';
 import Link from 'next/link';

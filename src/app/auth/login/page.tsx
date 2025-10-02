@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { loginAction } from '../actions';
 import { useSearchParams } from 'next/navigation';
-import { useAuth } from '@/lib/firebase/use-auth';
+import { useAuth } from '@/firebase/hooks';
 import { createSessionCookie } from '../session/actions';
 import { Loader2 } from 'lucide-react';
 
