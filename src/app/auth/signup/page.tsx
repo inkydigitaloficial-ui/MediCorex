@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -13,6 +14,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/firebase/use-auth';
 import { db } from '@/lib/firebase/client';
+import { Loader2 } from 'lucide-react';
+import { Logo } from '@/components/logo';
 
 
 export default function SignupPage() {
@@ -74,42 +77,52 @@ export default function SignupPage() {
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle>Crie sua Conta (Etapa 1 de 2)</CardTitle>
-        <CardDescription>Primeiro, informe seus dados pessoais.</CardDescription>
-      </CardHeader>
-      <form onSubmit={handleSignup}>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Nome Completo</Label>
-            <Input id="name" name="name" placeholder="Seu nome" required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="phone">Telefone (Opcional)</Label>
-            <Input id="phone" name="phone" type="tel" placeholder="(11) 99999-9999" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" name="email" type="email" placeholder="seu@email.com" required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Senha</Label>
-            <Input id="password" name="password" type="password" required placeholder="Mínimo 6 caracteres" />
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-4">
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Criando...' : 'Continuar para Etapa 2'}
-          </Button>
-          <p className="text-xs text-muted-foreground text-center">
-            Já tem uma conta?{' '}
-            <Link href="/auth/login" className="underline hover:text-primary">
-              Faça login
-            </Link>
-          </p>
-        </CardFooter>
-      </form>
-    </Card>
+    <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <div className="w-full max-w-md space-y-6">
+            <div className="flex justify-center">
+                <Link href="/" className="flex items-center gap-2 text-primary">
+                    <Logo className="h-8 w-8" />
+                    <span className="text-2xl font-semibold font-headline">MediCorex</span>
+                </Link>
+            </div>
+            <Card>
+                <CardHeader className="text-center">
+                    <CardTitle className="font-headline text-2xl">Comece seu Teste Gratuito</CardTitle>
+                    <CardDescription>Crie sua conta. Rápido, fácil e sem compromisso.</CardDescription>
+                </CardHeader>
+                <form onSubmit={handleSignup}>
+                    <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Nome Completo</Label>
+                        <Input id="name" name="name" placeholder="Seu nome" required />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="phone">Telefone (Opcional)</Label>
+                        <Input id="phone" name="phone" type="tel" placeholder="(11) 99999-9999" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input id="email" name="email" type="email" placeholder="seu@email.com" required />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="password">Senha</Label>
+                        <Input id="password" name="password" type="password" required placeholder="Mínimo 6 caracteres" />
+                    </div>
+                    </CardContent>
+                    <CardFooter className="flex flex-col gap-4">
+                    <Button type="submit" className="w-full" disabled={loading}>
+                        {loading ? <><Loader2 className="animate-spin"/> Criando conta...</> : 'Continuar para Etapa 2'}
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">
+                        Já tem uma conta?{' '}
+                        <Link href="/auth/login" className="underline font-medium hover:text-primary">
+                        Faça login
+                        </Link>
+                    </p>
+                    </CardFooter>
+                </form>
+            </Card>
+        </div>
+    </div>
   );
 }

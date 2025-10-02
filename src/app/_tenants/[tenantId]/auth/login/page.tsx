@@ -3,7 +3,6 @@
 
 import { useFormStatus } from 'react-dom';
 import { useEffect, useState, useActionState } from 'react';
-import Link from 'next/link';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
@@ -12,9 +11,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { loginAction } from '@/app/auth/actions';
-import { useSearchParams } from 'next/navigation';
-import { useAuth } from '@/firebase/hooks';
+import { useAuth } from '@/lib/firebase/use-auth';
 import { createSessionCookie } from '@/app/auth/session/actions';
+import { Logo } from '@/components/logo';
+import Link from 'next/link';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -28,7 +28,6 @@ function SubmitButton() {
 export default function TenantLoginPage() {
   const [state, formAction] = useActionState(loginAction, { error: null, success: false, tenantSlug: null });
   const { toast } = useToast();
-  const searchParams = useSearchParams();
   const auth = useAuth();
   
   const [email, setEmail] = useState('');
@@ -79,45 +78,55 @@ export default function TenantLoginPage() {
   const isDisabled = pending || isClientSigningIn;
 
   return (
-    <Card>
-      <CardHeader className="space-y-1 text-center">
-        <CardTitle className="text-2xl font-headline">Acessar Clínica</CardTitle>
-        <CardDescription>
-          Faça login para continuar para o seu painel.
-        </CardDescription>
-      </CardHeader>
-      <form action={formAction}>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input 
-              id="email" 
-              name="email" 
-              type="email" 
-              placeholder="seu@email.com" 
-              required 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isDisabled}
-            />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
+          <div className="w-full max-w-sm">
+              <div className="flex justify-center mb-6">
+                  <Link href="/" className="flex items-center gap-2 text-primary">
+                      <Logo className="h-8 w-8" />
+                      <span className="text-2xl font-semibold font-headline">MediCorex</span>
+                  </Link>
+              </div>
+              <Card>
+                <CardHeader className="space-y-1 text-center">
+                  <CardTitle className="text-2xl font-headline">Acessar Clínica</CardTitle>
+                  <CardDescription>
+                    Faça login para continuar para o seu painel.
+                  </CardDescription>
+                </CardHeader>
+                <form action={formAction}>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input 
+                        id="email" 
+                        name="email" 
+                        type="email" 
+                        placeholder="seu@email.com" 
+                        required 
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={isDisabled}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Senha</Label>
+                      <Input 
+                        id="password" 
+                        name="password" 
+                        type="password" 
+                        required 
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={isDisabled}
+                      />
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex flex-col gap-4">
+                    <SubmitButton />
+                  </CardFooter>
+                </form>
+              </Card>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Senha</Label>
-            <Input 
-              id="password" 
-              name="password" 
-              type="password" 
-              required 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isDisabled}
-            />
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-4">
-          <SubmitButton />
-        </CardFooter>
-      </form>
-    </Card>
+      </div>
   );
 }

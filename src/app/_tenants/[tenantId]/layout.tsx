@@ -1,4 +1,5 @@
 
+
 import { notFound, redirect } from 'next/navigation';
 import { ReactNode } from 'react';
 import { BarChart, LogOut, Settings, Users, Calendar, CircleDollarSign } from 'lucide-react';
@@ -28,8 +29,8 @@ function TrialBanner({ trialEnds }: { trialEnds: Date }) {
   if (daysLeft < 0) return null;
 
   return (
-    <div className='px-4 pt-4'>
-      <Alert className='border-primary/50 bg-primary/5 text-primary-foreground'>
+    <div className='px-4 pt-4 lg:px-6'>
+      <Alert className='border-primary/50 bg-primary/10 text-primary-foreground'>
         <AlertDescription className='text-center text-sm text-primary'>
           {daysLeft >= 1 ? `Você tem ${daysLeft + 1} dias de teste.` : 'Seu período de teste termina hoje.'}
           <Link href="/billing" className="underline font-semibold ml-2">Fazer Upgrade</Link>
@@ -100,7 +101,9 @@ export default async function TenantLayout({ children, params }: Props) {
             </div>
           </header>
           {role === 'owner' && tenant.subscriptionStatus === 'trialing' && trialEndsDate && <TrialBanner trialEnds={trialEndsDate} />}
-          {children}
+          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+            {children}
+          </main>
         </SidebarInset>
       </SidebarProvider>
     </TenantProvider>
