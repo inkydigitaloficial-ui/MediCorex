@@ -61,6 +61,7 @@ function AddPacienteDialog({ tenantId, onOpenChange, open }: { tenantId: string;
       const permissionError = new FirestorePermissionError({
         path: pacientesCollectionRef.path,
         operation: 'create',
+        requestResourceData: data,
       });
       errorEmitter.emit('permission-error', permissionError);
     });

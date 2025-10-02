@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Auth, onIdTokenChanged, User } from 'firebase/auth';
@@ -9,8 +10,6 @@ import {
     Firestore,
     onSnapshot,
     Query,
-    QueryDocumentSnapshot,
-    Unsubscribe,
 } from 'firebase/firestore';
 import { createContext, useContext, useEffect, useState, useMemo, ReactNode } from 'react';
 import { firebaseClient } from '@/lib/firebase/client';
@@ -157,8 +156,9 @@ export function useCollection<T>(query: Query | null): CollectionState<T> {
             setData(items);
             setIsLoading(false);
         }, (error) => {
+            const path = (query as any)._query?.path?.segments.join('/') || 'unknown path';
             const permissionError = new FirestorePermissionError({
-                path: (query as any)._query.path.segments.join('/'),
+                path: path,
                 operation: 'list',
             });
             errorEmitter.emit('permission-error', permissionError);
