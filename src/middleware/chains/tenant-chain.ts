@@ -30,13 +30,13 @@ export class TenantChain {
     // Se há um tenantId, mas o usuário não está autenticado, o AuthChain já deveria ter
     // redirecionado. Continuamos para que a página de login do tenant seja exibida.
     if (!user) {
-        // A página de login específica do tenant é reescrita para ser renderizada
-        const rewrittenUrl = RewriteHandler.applyTenantRewrite(request, tenantId);
+        // Reescreve para a página de login específica do tenant
         if (request.nextUrl.pathname.endsWith('/auth/login')) {
+            const rewrittenUrl = RewriteHandler.applyTenantRewrite(request, tenantId);
             return { shouldContinue: false, response: rewrittenUrl };
         }
-        // Para outras rotas do tenant, redireciona para a URL de login canônica.
-        const loginUrl = new URL(`/auth/login`, request.nextUrl);
+        // Para outras rotas protegidas do tenant, redireciona para a URL de login canônica.
+        const loginUrl = new URL(`/auth/login`, request.nextUrl.origin);
         return { shouldContinue: false, response: NextResponse.redirect(loginUrl) };
     }
     
@@ -53,7 +53,7 @@ export class TenantChain {
     }
 
     // Lógica para trial expirado
-    if (roleInTenant === 'owner_trial_expired' && !request.nextUrl.pathname.startsWith('/billing') && !request.nextUrl.pathname.startsWith('/escolha-seu-plano')) {
+    if (roleInTenant === 'owner_trial_expired' && !request.nextUrl.pathname.startsWith('/billing') && request.nextUrl.pathname !== '/escolha-seu-plano') {
       const billingUrl = new URL(`/_tenants/${tenantId}/billing`, request.url);
       return { 
         shouldContinue: false, 

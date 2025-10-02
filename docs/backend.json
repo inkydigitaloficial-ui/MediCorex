@@ -10,7 +10,7 @@
         "ownerId": { "type": "string", "description": "UID do usuário proprietário." },
         "active": { "type": "boolean", "description": "Se o tenant está ativo." },
         "plan": { "type": "string", "enum": ["trial", "basico", "essencial", "premium"], "description": "Plano de assinatura atual." },
-        "subscriptionStatus": { "type": "string", "enum": ["trialing", "active", "past_due", "canceled", "unpaid"], "description": "Status da assinatura no Pagar.me." },
+        "subscriptionStatus": { "type": "string", "enum": ["trialing", "active", "past_due", "canceled", "unpaid", "trial_expired"], "description": "Status da assinatura no Pagar.me." },
         "trialEnds": { "type": "string", "format": "date-time", "description": "Timestamp de quando o período de teste termina." },
         "settings": {
           "type": "object",
@@ -44,7 +44,7 @@
         "tenantId": { "type": "string" },
         "userId": { "type": "string" },
         "email": { "type": "string", "format": "email" },
-        "role": { "type": "string", "enum": ["owner", "admin", "member"] },
+        "role": { "type": "string", "enum": ["owner", "admin", "member", "owner_trial_expired"] },
         "permissions": { "type": "array", "items": { "type": "string" } },
         "joinedAt": { "type": "string", "format": "date-time" }
       },
