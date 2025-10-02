@@ -53,7 +53,7 @@ export class TenantChain {
     }
 
     // Lógica para trial expirado
-    if (roleInTenant === 'owner_trial_expired' && !request.nextUrl.pathname.startsWith('/billing') && request.nextUrl.pathname !== '/escolha-seu-plano') {
+    if (roleInTenant === 'owner_trial_expired' && !request.nextUrl.pathname.startsWith('/billing') && !RouteUtils.isPublicRoute(request.nextUrl.pathname)) {
       const billingUrl = new URL(`/_tenants/${tenantId}/billing`, request.url);
       return { 
         shouldContinue: false, 
