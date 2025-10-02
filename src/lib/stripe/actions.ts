@@ -3,8 +3,7 @@
 
 import { redirect } from 'next/navigation';
 import Stripe from 'stripe';
-import { getCurrentUser } from '@/utils/session'; // Assumindo que temos como pegar o usuário no servidor
-import { adminDb } from '@/lib/firebase/admin';
+import { getCurrentUser } from '@/utils/session';
 
 // Inicializa o Stripe com a chave secreta
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -12,18 +11,19 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 // Mapeamento dos planos para os Price IDs do Stripe
-// Substitua pelos seus IDs de Preço reais do Stripe
 const PLAN_PRICE_IDS = {
-  basico: process.env.STRIPE_PRICE_ID_BASICO || 'price_basic_placeholder',
-  profissional: process.env.STRIPE_PRICE_ID_PROFISSIONAL || 'price_professional_placeholder',
+  basico: process.env.STRIPE_PRICE_ID_BASICO || 'price_1PKOE5Cxw83m2M1yZ31xH23B', // Substitua
+  profissional: process.env.STRIPE_PRICE_ID_PROFISSIONAL || 'price_1PKOE5Cxw83m2M1yZ31xH23B', // Substitua
+  premium: process.env.STRIPE_PRICE_ID_PROFISSIONAL || 'price_1PKOE5Cxw83m2M1yZ31xH23B', // Adicionado
 };
 
 type Plan = keyof typeof PLAN_PRICE_IDS;
 
 export async function createCheckoutSession(plan: Plan) {
+  // O middleware já garante que o usuário está logado e tem acesso ao tenant.
+  // A função getCurrentUser pode ser simplificada se o tenantId for pego do subdomínio.
   const authContext = await getCurrentUser();
 
-  // 1. Validação de autenticação
   if (!authContext) {
     return redirect('/auth/login');
   }
@@ -31,38 +31,31 @@ export async function createCheckoutSession(plan: Plan) {
   const { user, tenantId } = authContext;
 
   if (!tenantId) {
-    // Isso seria um estado inesperado, o usuário deve ter um tenant
     throw new Error('ID do Tenant não encontrado na sessão do usuário.');
   }
 
   const priceId = PLAN_PRICE_IDS[plan];
-
-  if (!priceId) {
-    throw new Error('Plano inválido selecionado.');
+  if (!priceId || priceId.includes('placeholder')) {
+    console.error(`Stripe Price ID para o plano "${plan}" não está configurado.`);
+    throw new Error('Plano de assinatura não configurado corretamente no servidor.');
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
   try {
-    // 2. Criação da Sessão de Checkout no Stripe
     const checkoutSession = await stripe.checkout.sessions.create({
-      mode: 'subscription', // Pagamento recorrente
+      mode: 'subscription',
       payment_method_types: ['card'],
-      customer_email: user.email, // Preenche o email do cliente
-      line_items: [
-        { price: priceId, quantity: 1 },
-      ],
-      // Armazena metadados para identificar o cliente e o tenant após o pagamento (via webhook)
+      customer_email: user.email,
+      line_items: [{ price: priceId, quantity: 1 }],
       metadata: {
         userId: user.uid,
         tenantId: tenantId,
       },
-      // URLs para redirecionar o usuário após o pagamento
       success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/escolha-seu-plano?status=cancelled`,
     });
 
-    // 3. Redirecionamento para a URL do Stripe
     if (checkoutSession.url) {
       redirect(checkoutSession.url);
     } else {
@@ -71,7 +64,6 @@ export async function createCheckoutSession(plan: Plan) {
 
   } catch (error) {
     console.error('Erro ao criar sessão de checkout do Stripe:', error);
-    // Em caso de erro, redireciona de volta com uma mensagem
     redirect('/escolha-seu-plano?status=error');
   }
 }

@@ -3,7 +3,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-// ✅ Importa a instância do DB já inicializada e segura
 import { adminFirestore } from '@/lib/firebase/admin'; 
 
 const TenantFlowInput = z.object({
@@ -40,10 +39,8 @@ const generateCustomerInsightsFlow = ai.defineFlow(
     const startTime = Date.now();
 
     try {
-      // ✅ Usa adminFirestore diretamente, sem reinicializar.
       const [tenantDoc, customerDoc] = await Promise.all([
         adminFirestore.collection('tenants').doc(tenantId).get(),
-        // CORREÇÃO: A coleção é 'pacientes', não 'customers' como estava antes.
         adminFirestore.collection('tenants').doc(tenantId)
           .collection('pacientes').doc(customerId).get()
       ]);
@@ -53,7 +50,6 @@ const generateCustomerInsightsFlow = ai.defineFlow(
       }
 
       if (!customerDoc.exists) {
-        // CORREÇÃO: Mensagem de erro reflete a coleção correta.
         throw new Error(`Paciente ${customerId} não encontrado no tenant ${tenantId}`);
       }
 

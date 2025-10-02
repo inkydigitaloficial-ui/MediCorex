@@ -3,59 +3,68 @@ import { NextRequest } from 'next/server';
 import { AuthResult } from '../types';
 
 export class TokenUtils {
+  /**
+   * Valida um token JWT, primeiro verificando o cache e, em caso de falha,
+   * chamando uma API interna para validação segura com o Firebase Admin SDK.
+   */
   static async validateToken(request: NextRequest, token: string, tenantId?: string): Promise<AuthResult> {
     if (!token) {
       return { isValid: false, error: 'No token provided' };
     }
 
     try {
-      // Cache ainda é verificado primeiro no Edge
-      const cached = CacheUtils.getToken(token);
-      if (cached) {
-        return this.validateTenantAccess(cached, tenantId);
+      // 1. Tenta obter o token decodificado do cache.
+      const cachedDecodedToken = CacheUtils.get(token);
+      if (cachedDecodedToken) {
+        return this.validateTenantAccess(cachedDecodedToken, tenantId);
       }
 
-      // Chamada para a API interna para validação
+      // 2. Se não estiver no cache, chama a API de verificação interna.
       const verifyApiUrl = new URL('/api/auth/verify-token', request.nextUrl.origin);
       
       const response = await fetch(verifyApiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Cookie': request.headers.get('cookie') || '' // Passa cookies para a API route
+          // Passa o cookie original para a API, caso necessário para outras validações.
+          'Cookie': request.headers.get('cookie') || ''
         },
         body: JSON.stringify({ token }),
       });
 
       if (!response.ok) {
         const data = await response.json();
-        return { isValid: false, error: data.error || 'Invalid token' };
+        return { isValid: false, error: data.error || 'Token validation failed via API' };
       }
 
       const decodedToken = await response.json();
       
-      // Armazena em cache o token decodificado
-      CacheUtils.setToken(token, decodedToken);
+      // 3. Armazena o token decodificado no cache para futuras requisições.
+      CacheUtils.set(token, decodedToken);
       
+      // 4. Valida se o usuário tem acesso ao tenant específico.
       return this.validateTenantAccess(decodedToken, tenantId);
 
     } catch (error: any) {
-      console.error('Token validation fetch error:', error);
-      return { isValid: false, error: 'Token validation failed' };
+      console.error('[TokenUtils] Error:', error.message);
+      return { isValid: false, error: 'Internal error during token validation' };
     }
   }
 
+  /**
+   * Valida se os claims do token decodificado permitem acesso ao tenantId fornecido.
+   */
   private static validateTenantAccess(decodedToken: any, tenantId?: string): AuthResult {
+    // Se não há um tenantId na URL (domínio principal), a validação de acesso ao tenant não é necessária.
     if (!tenantId) {
-      // Se não há tenant, o token é válido por si só
       return { isValid: true, user: decodedToken };
     }
 
     const userTenants = decodedToken.tenants as { [key: string]: string } | undefined;
-    const roleInTenant = userTenants?.[tenantId];
+    const hasAccess = userTenants && Object.prototype.hasOwnProperty.call(userTenants, tenantId);
 
-    if (!roleInTenant) {
-      return { isValid: false, error: `No access to tenant ${tenantId}` };
+    if (!hasAccess) {
+      return { isValid: false, error: `User does not have claims for tenant ${tenantId}` };
     }
 
     return {
@@ -64,6 +73,9 @@ export class TokenUtils {
     };
   }
 
+  /**
+   * Extrai o token do cookie 'firebaseIdToken'.
+   */
   static extractToken(request: NextRequest): string | null {
     return request.cookies.get('firebaseIdToken')?.value || null;
   }

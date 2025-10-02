@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Check, Loader2 } from 'lucide-react';
 import { createCheckoutSession } from '@/lib/stripe/actions';
+import { useToast } from '@/hooks/use-toast';
 
 // O PlanCard agora precisa de um `planId` e uma função para lidar com o clique.
 const PlanCard = ({ 
@@ -69,12 +70,22 @@ const PlanCard = ({
 export default function EscolhaPlanoPage() {
   const [isPending, startTransition] = useTransition();
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  // Esta função chama a Server Action.
   const handleChoosePlan = (planId: 'basico' | 'profissional') => {
     setCurrentPlan(planId);
     startTransition(async () => {
-      await createCheckoutSession(planId);
+      try {
+        await createCheckoutSession(planId);
+      } catch (error: any) {
+        console.error('Stripe checkout error:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao iniciar pagamento',
+          description: 'Não foi possível redirecionar para a página de pagamento. Tente novamente.',
+        });
+        setCurrentPlan(null); // Reseta o estado em caso de erro
+      }
     });
   };
 
@@ -114,7 +125,7 @@ export default function EscolhaPlanoPage() {
             price="Contato"
             features={['Tudo do plano Profissional', 'Multi-unidades', 'API de integração', 'Gerente de Conta Dedicado']}
             planId="enterprise"
-            onChoosePlan={handleChoosePlan} // Não será chamada, mas a prop é esperada
+            onChoosePlan={() => {}} // Não faz nada para o plano Enterprise
             isPending={isPending}
             currentPlan={currentPlan}
           />

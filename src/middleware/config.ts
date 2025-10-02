@@ -1,37 +1,27 @@
 // src/middleware/config.ts
 export const middlewareConfig = {
-  domains: {
-    development: 'localhost:3000',
-    production: process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'medicorex.app'
-  },
+  // Domínio raiz da aplicação em produção.
+  rootDomain: process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:3000',
   
-  security: {
-    reservedSubdomains: new Set([
-      'www', 'api', 'admin', 'app', 'dashboard', 'auth',
-      'cdn', 'static', 'assets', 'mail', 'blog', 'shop',
-      'support', 'help', 'docs', 'status', 'dev', 'staging', 'test'
-    ]),
-    publicRoutes: new Set([
-      '/', '/home', '/about', '/pricing', '/contact',
-      '/auth/login', '/auth/signup', '/auth/forgot-password',
-      '/auth/reset-password', '/auth/unauthorized',
-      '/terms', '/privacy', '/features'
-    ]),
-    authRoutes: new Set([
-      '/auth/login', '/auth/signup', '/auth/forgot-password',
-      '/auth/reset-password', '/auth/logout'
-    ])
-  },
-  
-  cache: {
-    enabled: process.env.NODE_ENV === 'production',
-    ttl: 5 * 60 * 1000,
-    maxSize: 1000
-  },
-  
-  features: {
-    developmentMode: process.env.NODE_ENV === 'development',
-    allowMultiLevelSubdomains: false,
-    enableDebugHeaders: process.env.NODE_ENV === 'development'
-  }
-} as const;
+  // Rotas que não exigem autenticação.
+  publicRoutes: [
+    '/',
+    '/auth/login',
+    '/auth/signup',
+    '/auth/create-clinic', // Permitir acesso à criação da clínica
+    '/auth/unauthorized',
+    '/escolha-seu-plano',
+    '/payment/success'
+  ],
+
+  // Rotas relacionadas à autenticação.
+  authRoutes: [
+    '/auth/login',
+    '/auth/signup',
+    '/auth/create-clinic',
+    '/auth/logout'
+  ],
+
+  // Prefixo para rotas de API que devem ser ignoradas pelo middleware.
+  apiPrefix: '/api',
+};

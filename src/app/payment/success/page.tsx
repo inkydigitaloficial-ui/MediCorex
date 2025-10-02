@@ -1,36 +1,75 @@
 
+'use client'; // Marcar como componente de cliente para usar useRouter
+
+import { useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, XCircle } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
-// Em um aplicativo de produção, esta página faria uma verificação no servidor
-// para validar o `session_id` da query string com a API do Stripe
-// para confirmar que o pagamento foi realmente bem-sucedido.
+export default function PaymentSuccessPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
 
-// async function validatePayment(sessionId: string) {
-//   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-//   try {
-//     const session = await stripe.checkout.sessions.retrieve(sessionId);
-//     return session.payment_status === 'paid';
-//   } catch (error) {
-//     console.error("Erro ao validar sessão do Stripe:", error);
-//     return false;
-//   }
-// }
+  const sessionId = searchParams.get('session_id');
+  const status = searchParams.get('status');
 
-export default async function PaymentSuccessPage({ searchParams }: { searchParams: { session_id?: string } }) {
-  const sessionId = searchParams.session_id;
-  const isPaymentValid = !!sessionId; // Simulação: se o ID da sessão existe, consideramos válido.
-  // Em produção: const isPaymentValid = await validatePayment(sessionId);
+  useEffect(() => {
+    if (sessionId) {
+      toast({
+        title: "Pagamento bem-sucedido!",
+        description: "Sua assinatura está sendo ativada. Você será redirecionado em breve.",
+        duration: 5000,
+      });
 
-  if (!isPaymentValid) {
+      // Redireciona para o dashboard após um tempo
+      const timer = setTimeout(() => {
+        // Idealmente, a URL do dashboard viria de um contexto ou serviço
+        // Por enquanto, redireciona para a raiz, o middleware cuidará do resto
+        router.push('/');
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+
+    if (status === 'cancelled') {
+        toast({
+            variant: 'destructive',
+            title: "Pagamento Cancelado",
+            description: "Você cancelou o processo de pagamento. Você pode tentar novamente a qualquer momento.",
+            duration: 8000
+        });
+        const timer = setTimeout(() => router.push('/escolha-seu-plano'), 2000);
+        return () => clearTimeout(timer);
+    }
+    
+    if (status === 'error') {
+        toast({
+            variant: 'destructive',
+            title: "Erro no Pagamento",
+            description: "Ocorreu um erro inesperado. Por favor, tente novamente.",
+            duration: 8000
+        });
+        const timer = setTimeout(() => router.push('/escolha-seu-plano'), 2000);
+        return () => clearTimeout(timer);
+    }
+
+
+  }, [sessionId, status, router, toast]);
+
+  if (!sessionId) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center p-4 text-center">
-        <Card className="max-w-md bg-destructive/10 border-destructive">
+      <main className="flex flex-1 flex-col items-center justify-center p-4 lg:p-6 bg-background">
+        <Card className="max-w-md w-full border-destructive bg-destructive/5 text-center">
             <CardHeader>
-                <CardTitle>Pagamento Inválido ou Expirado</CardTitle>
-                <CardDescription>Ocorreu um erro ao processar seu pagamento. Por favor, tente novamente.</CardDescription>
+              <div className="mx-auto bg-destructive/10 rounded-full p-3 w-fit">
+                <XCircle className="h-12 w-12 text-destructive" />
+              </div>
+              <CardTitle className='pt-4'>Sessão de Pagamento Inválida</CardTitle>
+              <CardDescription>O link de pagamento é inválido ou expirou. Por favor, tente iniciar o processo novamente.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Button asChild>
@@ -38,30 +77,32 @@ export default async function PaymentSuccessPage({ searchParams }: { searchParam
                 </Button>
             </CardContent>
         </Card>
-      </div>
+      </main>
     );
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center p-4 lg:p-6">
+    <main className="flex flex-1 flex-col items-center justify-center p-4 lg:p-6 bg-background">
       <div className="w-full max-w-md">
-        <Card className="bg-green-500/10 border-green-500">
-          <CardHeader className="items-center text-center">
-            <CheckCircle2 className="h-12 w-12 text-green-500 mb-4" />
-            <CardTitle className="font-headline text-2xl text-green-700">
+        <Card className="bg-green-500/5 border-green-500 text-center">
+          <CardHeader className="items-center">
+            <div className="mx-auto bg-green-500/10 rounded-full p-3 w-fit">
+                <CheckCircle2 className="h-12 w-12 text-green-600" />
+            </div>
+            <CardTitle className="font-headline text-2xl text-green-700 pt-4">
               Pagamento Aprovado!
             </CardTitle>
-            <CardDescription className="pt-2">
+            <CardDescription className="pt-2 text-foreground/80">
               Sua assinatura foi ativada. Obrigado por se juntar ao MediCorex!
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-4">
-            <p className="text-sm text-muted-foreground text-center">
-              Um webhook do Stripe processará a atualização final em seu perfil em alguns instantes.
+            <p className="text-sm text-muted-foreground">
+              Aguarde, estamos redirecionando você para o seu painel...
             </p>
-            <Button asChild className="w-full">
+            <Button asChild className="w-full" variant="link">
               <Link href="/">
-                Ir para o Dashboard
+                Ir para o Dashboard Agora
               </Link>
             </Button>
           </CardContent>
