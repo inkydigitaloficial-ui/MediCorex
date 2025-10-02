@@ -7,7 +7,7 @@ export async function middleware(req: NextRequest) {
   const sessionCookie = req.cookies.get('session');
 
   if (!sessionCookie) {
-    return NextResponse.redirect(new URL('/login', req.url));
+    return NextResponse.redirect(new URL('/auth/login', req.url));
   }
 
   try {
@@ -23,12 +23,12 @@ export async function middleware(req: NextRequest) {
       },
     });
   } catch (err) {
-    return NextResponse.redirect(new URL('/login', req.url));
+    return NextResponse.redirect(new URL('/auth/login', req.url));
   }
 }
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|login|api/auth|$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|auth|api/auth|$).*)',
   ],
 };

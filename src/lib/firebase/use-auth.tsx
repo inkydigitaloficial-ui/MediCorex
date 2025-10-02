@@ -1,42 +1,36 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { User, onIdTokenChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client';
-
-const AuthContext = createContext<{ user: User | null, loading: boolean }>({ user: null, loading: true });
-
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const unsubscribe = onIdTokenChanged(auth, async (user) => {
-      if (user) {
-        setUser(user);
-        const idToken = await user.getIdToken();
-        await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ idToken }),
-        });
-      } else {
-        setUser(null);
-        await fetch('/api/auth/logout'); 
+      import { getAuth, onIdTokenChanged } from 'firebase/auth';
+      import { Auth } from 'firebase/auth';
+      import { createContext, useContext, useEffect, useState } from 'react';
+      
+      import { firebaseClient } from '@/lib/firebase/client';
+      
+      const AuthContext = createContext<Auth | null>(null);
+      
+      export function AuthProvider({ children }: { children: React.ReactNode }) {
+        const [auth, setAuth] = useState<Auth | null>(null);
+      
+        useEffect(() => {
+          const authInstance = getAuth(firebaseClient);
+          setAuth(authInstance);
+      
+          const unsubscribe = onIdTokenChanged(authInstance, async (user) => {
+            if (user) {
+              const token = await user.getIdToken();
+              document.cookie = `firebaseIdToken=${token}; path=/;`;
+            } else {
+              document.cookie = 'firebaseIdToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+            }
+          });
+      
+          return () => unsubscribe();
+        }, []);
+      
+        return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
       }
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  return (
-    <AuthContext.Provider value={{ user, loading }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-export const useAuth = () => useContext(AuthContext);
+      
+      export const useAuth = () => {
+        return useContext(AuthContext);
+      };
+      

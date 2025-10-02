@@ -3,14 +3,15 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/firebase';
+import { useAuth } from '@/lib/firebase/use-auth';
+import { createSessionCookie } from '../session/actions';
 
 export default function SignupPage() {
   const auth = useAuth();
@@ -18,104 +19,86 @@ export default function SignupPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  
-  const handleSignUp = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSignup = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setLoading(true);
+    const formData = new FormData(event.currentTarget);
+    const name = formData.get('name') as string;
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
     if (!auth) {
-        toast({
-            variant: 'destructive',
-            title: 'Erro de Configuração',
-            description: 'O serviço de autenticação não está disponível. Tente novamente mais tarde.',
-        });
-        return;
+      toast({ title: 'Erro de autenticação', description: 'O serviço de autenticação não está disponível.', variant: 'destructive' });
+      setLoading(false);
+      return;
     }
 
-    setLoading(true);
-
     try {
-      // 1. Cria o usuário
+      // 1. Criar o usuário no Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      
-      // 2. ATUALIZA O PERFIL com o nome fornecido
-      if (userCredential.user) {
-        await updateProfile(userCredential.user, {
-            displayName: name,
-        });
+      const user = userCredential.user;
+
+      // 2. Atualizar o perfil com o nome de exibição
+      await updateProfile(user, { displayName: name });
+      toast({ title: 'Usuário criado!', description: 'Agora vamos configurar sua sessão...' });
+
+      // 3. Obter o token de ID do Firebase
+      const idToken = await user.getIdToken(true); // Forçar atualização para garantir que o nome está no token
+
+      // 4. Enviar o token para a Server Action para criar o cookie de sessão
+      const sessionResult = await createSessionCookie(idToken);
+
+      if (sessionResult.status === 'success') {
+        // 5. Redirecionar para a página de setup da conta
+        toast({ title: 'Sessão iniciada!', description: 'Finalizando a configuração da sua clínica...' });
+        router.push('/auth/setup-account');
+      } else {
+        throw new Error(sessionResult.message || 'Falha ao criar a sessão de usuário.');
       }
-
-      // 3. Faz o login automático com as mesmas credenciais
-      await signInWithEmailAndPassword(auth, email, password);
-
-      toast({
-        title: 'Conta criada com sucesso!',
-        description: 'Estamos preparando sua clínica. Você será redirecionado em instantes.',
-      });
-
-      // 4. Redireciona para a página de setup que vai aguardar a criação do tenant
-      router.push('/auth/setup-account');
 
     } catch (error: any) {
-      let description = 'Ocorreu um erro desconhecido. Tente novamente.';
-      if (error.code === 'auth/email-already-in-use') {
-        description = 'Este endereço de e-mail já está sendo usado por outra conta.';
-      } else if (error.code === 'auth/weak-password') {
-        description = 'A senha é muito fraca. Tente uma senha mais forte com pelo menos 6 caracteres.';
-      } else if (error.code === 'auth/invalid-email') {
-        description = 'O endereço de e-mail fornecido não é válido.';
-      }
-      console.error('Erro no cadastro:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro no Cadastro',
-        description: description,
-      });
-       setLoading(false);
+      console.error('Erro detalhado no cadastro:', error);
+      toast({ title: 'Erro no cadastro', description: error.message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Card>
-      <CardHeader className="space-y-1 text-center">
-        <CardTitle className="text-2xl font-headline">Crie sua Conta na MediCorex</CardTitle>
-        <CardDescription>
-          Comece agora com 7 dias de teste gratuito do nosso plano Premium.
-        </CardDescription>
-      </CardHeader>
-      <form onSubmit={handleSignUp}>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Seu Nome Completo</Label>
-            <Input id="name" name="name" type="text" placeholder="Nome do responsável" required value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">Seu Melhor Email</Label>
-            <Input id="email" name="email" type="email" placeholder="seu@email.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="phone">Telefone (Opcional)</Label>
-            <Input id="phone" name="phone" type="tel" placeholder="(99) 99999-9999" value={phone} onChange={(e) => setPhone(e.target.value)}/>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Crie uma Senha</Label>
-            <Input id="password" name="password" type="password" required minLength={6} placeholder="Mínimo 6 caracteres" value={password} onChange={(e) => setPassword(e.target.value)} />
-          </div>
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Criar Conta</CardTitle>
+          <CardDescription>Preencha seus dados para criar uma nova conta.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSignup} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome</Label>
+              <Input id="name" name="name" placeholder="Seu nome completo" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" name="email" type="email" placeholder="seu@email.com" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Senha</Label>
+              <Input id="password" name="password" type="password" required />
+            </div>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Criando conta...' : 'Criar conta'}
+            </Button>
+          </form>
         </CardContent>
-        <CardFooter className="flex flex-col gap-4">
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Criando sua clínica...' : 'Criar Conta e Iniciar Teste'}
-          </Button>
-          <p className="text-xs text-muted-foreground text-center">
+        <CardFooter className="flex justify-center">
+          <p className="text-sm text-gray-600">
             Já tem uma conta?{' '}
-            <Link href="/auth/login" className="underline hover:text-primary">
+            <Link href="/auth/login" className="font-semibold text-blue-600 hover:underline">
               Faça login
             </Link>
           </p>
         </CardFooter>
-      </form>
-    </Card>
+      </Card>
+    </div>
   );
 }
