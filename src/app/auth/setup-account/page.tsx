@@ -1,84 +1,88 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/firebase/use-auth';
+import { useAuth } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { findUserTenantAction } from '../actions';
+import { Loader2 } from 'lucide-react';
 
 // Componente de UI para o spinner e a mensagem
 function SetupStatus() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
-      <div className="text-center p-8 bg-white rounded-lg shadow-md">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-        <h1 className="text-2xl font-bold text-gray-800 mt-6">Estamos preparando tudo para você!</h1>
-        <p className="text-gray-600 mt-2">Isso pode levar alguns instantes. Não feche esta página.</p>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-muted/50">
+      <div className="text-center p-8 bg-background rounded-lg shadow-md max-w-sm w-full">
+        <Loader2 className="animate-spin h-10 w-10 text-primary mx-auto" />
+        <h1 className="text-2xl font-bold font-headline text-foreground mt-6">Quase lá!</h1>
+        <p className="text-muted-foreground mt-2">Estamos preparando sua clínica e configurando seu ambiente. Isso pode levar alguns instantes.</p>
+        <p className="text-muted-foreground mt-1">Por favor, não feche esta página.</p>
       </div>
     </div>
   );
 }
 
 export default function SetupAccountPage() {
-  const auth = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    if (!auth?.currentUser) {
-      // Se o usuário não estiver logado, aguarda ou redireciona para o login
-      const timer = setTimeout(() => setAttempt(prev => prev + 1), 1000);
+    if (!user) {
+      // Se o usuário não estiver logado, aguarda ou redireciona
+      const timer = setTimeout(() => {
+          if (!user && attempt > 3) router.push('/auth/login');
+          setAttempt(prev => prev + 1);
+      }, 1000);
       return () => clearTimeout(timer);
     }
 
-    const checkForClaimsAndRedirect = async () => {
+    const checkForTenant = async () => {
       try {
-        // Força a atualização do token para obter os claims mais recentes
-        const idTokenResult = await auth.currentUser.getIdTokenResult(true);
-        const claims = idTokenResult.claims;
+        const result = await findUserTenantAction(user.uid);
 
-        // Verifica se o claim 'tenants' existe e tem pelo menos uma entrada
-        if (claims.tenants && Object.keys(claims.tenants).length > 0) {
-          const tenantId = Object.keys(claims.tenants)[0]; // Pega o primeiro tenantId
-          
+        if (result.tenantId) {
           toast({ title: 'Clínica Pronta!', description: 'Redirecionando para seu painel...' });
-
-          // Constrói a URL do subdomínio
+          
           const protocol = window.location.protocol;
-          const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || window.location.host.split('.').slice(-2).join('.');
-          const newUrl = `${protocol}//${tenantId}.${rootDomain}`;
+          const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || window.location.host;
+          const newUrl = `${protocol}//${result.tenantId}.${rootDomain}/dashboard`;
 
           // Redireciona para o dashboard do tenant
           window.location.href = newUrl;
 
         } else {
-          // Se os claims ainda não existem, tenta novamente após um intervalo
+          // Se o tenant ainda não foi encontrado, tenta novamente
           if (attempt < 15) { // Tenta por até 30 segundos
             setTimeout(() => setAttempt(prev => prev + 1), 2000);
           } else {
-            // Se exceder o tempo, informa o usuário e sugere um refresh ou contato
             toast({
               variant: 'destructive',
               title: 'Algo deu errado na configuração',
-              description: 'Por favor, recarregue a página ou entre em contato com o suporte.',
+              description: result.error || 'Não foi possível encontrar sua clínica. Por favor, recarregue a página ou entre em contato com o suporte.',
               duration: 10000,
             });
           }
         }
       } catch (error: any) {
-        console.error('Erro ao verificar claims:', error);
+        console.error('Erro ao verificar tenant:', error);
         toast({ 
           variant: 'destructive', 
-          title: 'Erro de Autenticação', 
-          description: 'Não foi possível verificar seu status. Tente fazer login novamente.' 
+          title: 'Erro de Servidor', 
+          description: 'Não foi possível verificar o status da sua clínica. Tente novamente mais tarde.' 
         });
-        router.push('/auth/login');
       }
     };
 
-    checkForClaimsAndRedirect();
+    const checkInterval = setInterval(() => {
+      checkForTenant();
+    }, 2000); // Verifica a cada 2 segundos
 
-  }, [auth, router, toast, attempt]);
+    // Limpa o intervalo quando o componente é desmontado ou o tenant é encontrado
+    return () => clearInterval(checkInterval);
+
+  }, [user, router, toast, attempt]);
 
   return <SetupStatus />;
 }

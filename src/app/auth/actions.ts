@@ -2,14 +2,8 @@
 'use server';
 
 import { z } from 'zod';
-import { adminAuth, adminFirestore } from '@/lib/firebase/admin'; // Importa as instâncias singleton
-import Stripe from 'stripe';
-
-// Inicialização do Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-04-10',
-  typescript: true,
-});
+import { adminAuth, adminFirestore } from '@/lib/firebase/admin';
+import { addDays } from 'date-fns';
 
 const loginSchema = z.object({
     email: z.string().email({ message: 'Por favor, insira um email válido.' }),
@@ -38,7 +32,6 @@ export async function loginAction(prevState: LoginFormState, formData: FormData)
         const tenantUsersSnapshot = await adminFirestore.collection('tenant_users').where('userId', '==', userRecord.uid).limit(1).get();
 
         if (tenantUsersSnapshot.empty) {
-            // Isso pode acontecer se a Cloud Function de criação de usuário ainda não terminou de executar.
             return { error: 'Sua clínica ainda está sendo preparada. Tente novamente em alguns instantes.', success: false };
         }
 
@@ -50,7 +43,6 @@ export async function loginAction(prevState: LoginFormState, formData: FormData)
             return { error: 'Nenhum usuário encontrado com este email.', success: false };
         }
         console.error("Erro durante o login na Action:", error);
-        // Para o usuário final, um erro genérico de credenciais é mais seguro.
         return { error: 'Credenciais inválidas. Verifique seu email e senha.', success: false };
     }
 }
@@ -70,7 +62,6 @@ export async function findUserTenantAction(userId: string): Promise<FindTenantSt
     const tenantUsersSnapshot = await adminFirestore.collection('tenant_users').where('userId', '==', userId).limit(1).get();
 
     if (tenantUsersSnapshot.empty) {
-      // É normal não encontrar imediatamente, a Cloud Function pode estar em execução.
       return { error: 'Tenant não encontrado ainda.', tenantId: null };
     }
 
@@ -82,53 +73,84 @@ export async function findUserTenantAction(userId: string): Promise<FindTenantSt
   }
 }
 
-// --- Ação de Checkout do Stripe ---
+// --- Nova Ação para Criar a Clínica ---
 
-type CheckoutState = {
-  error?: string;
-  url?: string;
+const createClinicSchema = z.object({
+  userId: z.string().min(1),
+  clinicName: z.string().min(3, { message: 'O nome da clínica deve ter pelo menos 3 caracteres.' }),
+  clinicSlug: z.string().min(3, { message: 'O endereço da clínica deve ter pelo menos 3 caracteres.' }).regex(/^[a-z0-9](-?[a-z0-9])*$/, { message: 'Endereço inválido. Use apenas letras minúsculas, números e hífens.' }),
+});
+
+type CreateClinicState = {
+  error: string | null;
+  success: boolean;
 };
 
-export async function createCheckoutSessionAction(tenantId: string, userEmail: string): Promise<CheckoutState> {
-  if (!tenantId || !userEmail) {
-    return { error: 'Informações essenciais (ID da clínica ou email) não fornecidas.' };
+export async function createClinicAction(
+  userId: string,
+  clinicName: string,
+  clinicSlug: string
+): Promise<CreateClinicState> {
+    
+  const validatedFields = createClinicSchema.safeParse({ userId, clinicName, clinicSlug });
+
+  if (!validatedFields.success) {
+    const firstError = Object.values(validatedFields.error.flatten().fieldErrors)[0]?.[0];
+    return { error: firstError || 'Dados inválidos.', success: false };
   }
 
-  const priceId = process.env.STRIPE_PREMIUM_PRICE_ID;
-  if (!priceId) {
-      console.error('Variável de ambiente STRIPE_PREMIUM_PRICE_ID não definida.');
-      return { error: 'A configuração de preço do plano não foi encontrada.' };
-  }
-
-  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:3000';
+  const { clinicSlug: tenantId } = validatedFields.data;
 
   try {
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      mode: 'subscription',
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
-      // URLs dinâmicas baseadas no tenant
-      success_url: `http://${tenantId}.${rootDomain}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `http://${tenantId}.${rootDomain}/billing`,
-      customer_email: userEmail,
-      // ID de referência do cliente para ligar a sessão de checkout ao tenant no webhook
-      client_reference_id: tenantId,
+    // 1. Verificar se o slug já está em uso
+    const tenantDoc = await adminFirestore.collection('tenants').doc(tenantId).get();
+    if (tenantDoc.exists) {
+      return { error: 'Este endereço de clínica já está em uso. Por favor, escolha outro.', success: false };
+    }
+    
+    const user = await adminAuth.getUser(userId);
+
+    const trialEnds = addDays(new Date(), 7);
+    const batch = adminFirestore.batch();
+
+    // 2. CRIAR DOCUMENTO DO TENANT
+    const tenantRef = adminFirestore.collection('tenants').doc(tenantId);
+    batch.set(tenantRef, {
+        name: clinicName,
+        ownerId: userId,
+        active: true,
+        plan: 'trial',
+        subscriptionStatus: 'trialing',
+        trialEnds: trialEnds, // Firestore Timestamps são tratados no cliente agora
+        createdAt: new Date(),
     });
 
-    if (!session.url) {
-        console.error('Stripe session URL não foi retornada.');
-        return { error: 'Não foi possível criar a sessão de pagamento. Tente novamente.' };
-    }
+    // 3. CRIAR ASSOCIAÇÃO TENANT-USUÁRIO
+    const tenantUserRef = adminFirestore.collection('tenant_users').doc(`${userId}_${tenantId}`);
+    batch.set(tenantUserRef, {
+        userId: userId,
+        tenantId: tenantId,
+        role: 'owner',
+    });
+    
+    // 4. Salvar dados adicionais no perfil do usuário (se houver)
+    const userProfileRef = adminFirestore.collection('users').doc(userId);
+    batch.update(userProfileRef, {
+        // o nome e email já foram salvos no passo 1
+        // podemos adicionar outros campos aqui no futuro
+    });
 
-    return { url: session.url };
+    await batch.commit();
 
-  } catch (error) {
-    console.error('Erro ao criar sessão de checkout no Stripe:', error);
-    return { error: 'Ocorreu um erro ao comunicar com nosso provedor de pagamentos.' };
+    // 5. DEFINIR CUSTOM CLAIMS
+    await adminAuth.setCustomUserClaims(userId, {
+        tenants: { [tenantId]: 'owner' }
+    });
+
+    return { error: null, success: true };
+
+  } catch (error: any) {
+    console.error('Erro crítico ao criar a clínica:', error);
+    return { error: 'Não foi possível criar sua clínica. Por favor, tente novamente ou contate o suporte.', success: false };
   }
 }

@@ -1,20 +1,22 @@
+
 'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/lib/firebase/use-auth';
-import { createSessionCookie } from '../session/actions';
+import { useAuth, useFirestore } from '@/firebase';
 
 export default function SignupPage() {
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -26,9 +28,10 @@ export default function SignupPage() {
     const name = formData.get('name') as string;
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
+    const phone = formData.get('phone') as string;
 
-    if (!auth) {
-      toast({ title: 'Erro de autenticação', description: 'O serviço de autenticação não está disponível.', variant: 'destructive' });
+    if (!auth || !firestore) {
+      toast({ title: 'Erro de inicialização', description: 'Serviços de autenticação ou banco de dados não estão disponíveis.', variant: 'destructive' });
       setLoading(false);
       return;
     }
@@ -38,67 +41,75 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 2. Atualizar o perfil com o nome de exibição
+      // 2. Atualizar o perfil do Auth com o nome de exibição
       await updateProfile(user, { displayName: name });
-      toast({ title: 'Usuário criado!', description: 'Agora vamos configurar sua sessão...' });
-
-      // 3. Obter o token de ID do Firebase
-      const idToken = await user.getIdToken(true); // Forçar atualização para garantir que o nome está no token
-
-      // 4. Enviar o token para a Server Action para criar o cookie de sessão
-      const sessionResult = await createSessionCookie(idToken);
-
-      if (sessionResult.status === 'success') {
-        // 5. Redirecionar para a página de setup da conta
-        toast({ title: 'Sessão iniciada!', description: 'Finalizando a configuração da sua clínica...' });
-        router.push('/auth/setup-account');
-      } else {
-        throw new Error(sessionResult.message || 'Falha ao criar a sessão de usuário.');
-      }
+      
+      // 3. Salvar o perfil completo no Firestore, incluindo o telefone
+      const userProfileRef = doc(firestore, 'users', user.uid);
+      await setDoc(userProfileRef, {
+        uid: user.uid,
+        name: name,
+        email: email,
+        phone: phone || null, // Salva o telefone ou null se vazio
+        createdAt: new Date(),
+      });
+      
+      toast({ title: 'Conta criada!', description: 'Agora, vamos criar sua clínica.' });
+      
+      // 4. Redirecionar para a segunda etapa do cadastro
+      router.push('/auth/create-clinic');
 
     } catch (error: any) {
       console.error('Erro detalhado no cadastro:', error);
-      toast({ title: 'Erro no cadastro', description: error.message, variant: 'destructive' });
+      let friendlyMessage = 'Ocorreu um erro desconhecido.';
+      if (error.code === 'auth/email-already-in-use') {
+        friendlyMessage = 'Este endereço de email já está em uso por outra conta.';
+      } else if (error.code === 'auth/weak-password') {
+        friendlyMessage = 'A senha é muito fraca. Tente uma com pelo menos 6 caracteres.';
+      }
+      toast({ title: 'Erro no cadastro', description: friendlyMessage, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Criar Conta</CardTitle>
-          <CardDescription>Preencha seus dados para criar uma nova conta.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSignup} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome</Label>
-              <Input id="name" name="name" placeholder="Seu nome completo" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" placeholder="seu@email.com" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input id="password" name="password" type="password" required />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Criando conta...' : 'Criar conta'}
-            </Button>
-          </form>
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle>Crie sua Conta (Etapa 1 de 2)</CardTitle>
+        <CardDescription>Primeiro, informe seus dados pessoais.</CardDescription>
+      </CardHeader>
+      <form onSubmit={handleSignup}>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Nome Completo</Label>
+            <Input id="name" name="name" placeholder="Seu nome" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Telefone (Opcional)</Label>
+            <Input id="phone" name="phone" type="tel" placeholder="(11) 99999-9999" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" name="email" type="email" placeholder="seu@email.com" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Senha</Label>
+            <Input id="password" name="password" type="password" required placeholder="Mínimo 6 caracteres" />
+          </div>
         </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-gray-600">
+        <CardFooter className="flex flex-col gap-4">
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? 'Criando...' : 'Continuar para Etapa 2'}
+          </Button>
+          <p className="text-xs text-muted-foreground text-center">
             Já tem uma conta?{' '}
-            <Link href="/auth/login" className="font-semibold text-blue-600 hover:underline">
+            <Link href="/auth/login" className="underline hover:text-primary">
               Faça login
             </Link>
           </p>
         </CardFooter>
-      </Card>
-    </div>
+      </form>
+    </Card>
   );
 }
