@@ -32,6 +32,9 @@ export default function CreateClinicPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Variável de ambiente para o domínio raiz.
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:9002';
+
   useEffect(() => {
     // Sugere um slug baseado no nome da clínica
     setClinicSlug(slugify(clinicName));
@@ -62,19 +65,17 @@ export default function CreateClinicPage() {
         
         // Redirecionamento para o subdomínio
         const protocol = window.location.protocol;
-        const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || window.location.host;
         const newUrl = `${protocol}//${clinicSlug}.${rootDomain}/dashboard`;
         window.location.href = newUrl;
 
     } else {
+        // Exibe o erro específico retornado pela action
         setError(result.error);
         toast({ title: 'Erro ao criar clínica', description: result.error, variant: 'destructive'});
         setLoading(false);
     }
   };
   
-  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'medicorex.app';
-
   if (isUserLoading || !user) {
       return (
           <div className='flex h-screen items-center justify-center bg-transparent'>
@@ -120,7 +121,8 @@ export default function CreateClinicPage() {
                             .{rootDomain}
                         </span>
                     </div>
-                    {error && <p className="text-sm text-destructive pt-1">{error}</p>}
+                    {/* Exibe a mensagem de erro específica retornada pela action */}
+                    {error && <p className="text-sm text-destructive pt-2">{error}</p>}
                 </div>
             </CardContent>
             <CardFooter>

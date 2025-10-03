@@ -117,27 +117,23 @@ export async function createClinicAction(
     const tenantRef = adminFirestore.collection('tenants').doc(tenantId);
     batch.set(tenantRef, {
         name: clinicName,
+        slug: tenantId,
         ownerId: userId,
         active: true,
         plan: 'trial',
         subscriptionStatus: 'trialing',
-        trialEnds: trialEnds, // Firestore Timestamps são tratados no cliente agora
+        trialEnds: trialEnds,
         createdAt: new Date(),
     });
 
     // 3. CRIAR ASSOCIAÇÃO TENANT-USUÁRIO
     const tenantUserRef = adminFirestore.collection('tenant_users').doc(`${userId}_${tenantId}`);
     batch.set(tenantUserRef, {
-        userId: userId,
         tenantId: tenantId,
-        role: 'owner',
-    });
-    
-    // 4. Salvar dados adicionais no perfil do usuário (se houver)
-    const userProfileRef = adminFirestore.collection('users').doc(userId);
-    batch.update(userProfileRef, {
-        // o nome e email já foram salvos no passo 1
-        // podemos adicionar outros campos aqui no futuro
+        userId: userId,
+        email: user.email, // Campo obrigatório adicionado
+        role: 'owner', // Campo obrigatório adicionado
+        joinedAt: new Date(),
     });
 
     await batch.commit();
