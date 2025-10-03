@@ -31,9 +31,12 @@ export default function CreateClinicPage() {
   const [clinicSlug, setClinicSlug] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rootDomain, setRootDomain] = useState('');
 
-  // Variável de ambiente para o domínio raiz.
-  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:9002';
+  useEffect(() => {
+    // Define o rootDomain a partir do window.location.host quando o componente é montado no cliente
+    setRootDomain(window.location.host);
+  }, []);
 
   useEffect(() => {
     // Sugere um slug baseado no nome da clínica
@@ -63,10 +66,16 @@ export default function CreateClinicPage() {
     if (result.success) {
         toast({ title: 'Clínica criada com sucesso!', description: 'Redirecionando para seu painel...' });
         
-        // Redirecionamento para o subdomínio
+        // Redirecionamento dinâmico para o subdomínio
         const protocol = window.location.protocol;
-        const newUrl = `${protocol}//${clinicSlug}.${rootDomain}/dashboard`;
-        window.location.href = newUrl;
+        // Em dev, o host é 'localhost:port', em prod é 'medicorex.com.br'
+        // A lógica de subdomínio funciona apenas em produção, em dev vamos para uma rota normal
+        if (process.env.NODE_ENV === 'development') {
+            router.push('/auth/setup-account');
+        } else {
+            const newUrl = `${protocol}//${clinicSlug}.${rootDomain}/dashboard`;
+            window.location.href = newUrl;
+        }
 
     } else {
         // Exibe o erro específico retornado pela action
@@ -76,7 +85,7 @@ export default function CreateClinicPage() {
     }
   };
   
-  if (isUserLoading || !user) {
+  if (isUserLoading || !user || !rootDomain) {
       return (
           <div className='flex h-screen items-center justify-center bg-transparent'>
               <Loader2 className='h-8 w-8 animate-spin text-primary' />

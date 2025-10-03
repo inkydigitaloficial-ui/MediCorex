@@ -1,19 +1,33 @@
+
 import { middlewareConfig } from '../config';
 
 export class DomainUtils {
   /**
    * Extrai o subdomínio do hostname da requisição.
    * Ex: "clinica-a.medicorex.app" -> "clinica-a"
-   * Ex: "app.localhost:3000" -> "app"
+   * Ex: "app.localhost:9002" -> "app"
    */
   static extractSubdomain(hostname: string | null): string | null {
     if (!hostname) return null;
 
-    const rootDomain = middlewareConfig.rootDomain;
+    // Em desenvolvimento, o host é algo como "localhost:9002"
+    // Não há subdomínio real, então retornamos null.
+    // O roteamento será feito pela estrutura de pastas _tenants/[tenantId]
+    if (hostname.includes('localhost')) {
+      return null;
+    }
+    
+    // Em produção, usamos a variável de ambiente para o domínio principal
+    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
+    if (!rootDomain) {
+      // Se a variável não estiver definida em prod, retorna null para evitar erros.
+      return null;
+    }
+
     const normalizedHostname = hostname.toLowerCase();
 
-    // Se o hostname for igual ao domínio raiz (com ou sem porta), não há subdomínio.
-    if (normalizedHostname === rootDomain || normalizedHostname.startsWith(rootDomain + ':')) {
+    // Se o hostname for igual ao domínio raiz, não há subdomínio.
+    if (normalizedHostname === rootDomain) {
         return null;
     }
     
@@ -26,15 +40,6 @@ export class DomainUtils {
         return subdomain;
       }
     }
-    
-    // Caso especial para desenvolvimento local (ex: clinica-a.localhost:3000)
-    if (process.env.NODE_ENV === 'development' && normalizedHostname.endsWith('.localhost:3000')) {
-        const subdomain = normalizedHostname.replace('.localhost:3000', '');
-        if (subdomain && subdomain !== 'www') {
-            return subdomain;
-        }
-    }
-
 
     return null;
   }

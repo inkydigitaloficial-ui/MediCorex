@@ -4,6 +4,7 @@
 import { useFormStatus } from 'react-dom';
 import { useEffect, useState, useActionState, Suspense } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +12,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { loginAction } from '../actions';
-import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/firebase/hooks';
 import { createSessionCookie } from '../session/actions';
 import { Loader2 } from 'lucide-react';
@@ -29,11 +29,18 @@ function LoginFormComponent() {
   const [state, formAction] = useActionState(loginAction, { error: null, success: false, tenantSlug: null });
   const { toast } = useToast();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const auth = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isClientSigningIn, setIsClientSigningIn] = useState(false);
+  const [rootDomain, setRootDomain] = useState('');
+
+  useEffect(() => {
+    // Define o rootDomain a partir do window.location.host quando o componente é montado no cliente
+    setRootDomain(window.location.host);
+  }, []);
 
   useEffect(() => {
     if (state.error) {
@@ -44,7 +51,7 @@ function LoginFormComponent() {
       });
     }
 
-    if (state.success && state.tenantSlug && auth) {
+    if (state.success && state.tenantSlug && auth && rootDomain) {
       setIsClientSigningIn(true);
       signInWithEmailAndPassword(auth, email, password)
         .then(async (userCredential) => {
@@ -57,9 +64,15 @@ function LoginFormComponent() {
               description: 'Redirecionando para seu painel...',
             });
             const protocol = window.location.protocol;
-            const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || window.location.host;
             
-            window.location.href = `${protocol}//${state.tenantSlug}.${rootDomain}`;
+            // Em dev, redirecionamos para a página que simula o tenant
+            // Em prod, para o subdomínio real
+            if (process.env.NODE_ENV === 'development') {
+                router.push(`/_tenants/${state.tenantSlug}/dashboard`);
+            } else {
+                window.location.href = `${protocol}//${state.tenantSlug}.${rootDomain}`;
+            }
+
           } else {
             throw new Error(sessionResult.message);
           }
@@ -75,7 +88,7 @@ function LoginFormComponent() {
             setIsClientSigningIn(false);
         });
     }
-  }, [state, auth, email, password, toast]);
+  }, [state, auth, email, password, toast, rootDomain, router]);
   
   useEffect(() => {
     if (searchParams.get('signup') === 'success') {
