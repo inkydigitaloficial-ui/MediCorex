@@ -5,9 +5,8 @@
  * @fileOverview Gera um resumo do prontuário do paciente usando IA,
  * com validação de acesso e auditoria.
  *
- * @function gerarResumoPaciente - O fluxo principal do Genkit.
- * @property {object} inputSchema - Define o que o fluxo espera como entrada.
- * @property {object} outputSchema - Define o que o fluxo retorna.
+ * @function gerarResumoPacienteAction - Ação exportada que invoca o fluxo Genkit.
+ * @property {object} GerarResumoPacienteInputSchema - Define o que o fluxo espera como entrada.
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
@@ -83,6 +82,11 @@ const gerarResumoPacienteFlow = ai.defineFlow({
 });
 
 
-export async function gerarResumoPaciente(input: GerarResumoPacienteInput): Promise<string> {
+/**
+ * Ação exportada que serve como ponto de entrada para o fluxo Genkit a partir do cliente.
+ * @param input - Os dados de entrada que correspondem a GerarResumoPacienteInput.
+ * @returns O resumo em string gerado pela IA.
+ */
+export async function gerarResumoPacienteAction(input: GerarResumoPacienteInput): Promise<string> {
     return gerarResumoPacienteFlow(input);
 }
