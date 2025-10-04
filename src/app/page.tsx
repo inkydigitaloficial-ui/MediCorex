@@ -16,6 +16,8 @@ function DemoLink() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const protocol = window.location.protocol;
+      // Em produção, queremos o domínio raiz (ex: medicorex.app),
+      // e não o subdomínio atual (ex: www.medicorex.app)
       const host = window.location.host.replace(/^www\./, '');
       const newUrl = `${protocol}//acme.${host}`;
       setDemoUrl(newUrl);
