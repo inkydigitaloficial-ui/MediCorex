@@ -1,4 +1,5 @@
 import { config } from 'dotenv';
 config();
 
-import '@/flows/pacientes/gerarResumoPaciente';
+// Ajustado para importar o fluxo consolidado de pacientes.
+import '@/ai/flows/pacientes/gerarResumoPaciente';
