@@ -23,6 +23,7 @@ export function Footer() {
             <li><Link href="/#features" className="hover:text-primary transition-colors" prefetch={false}>Recursos</Link></li>
             <li><Link href="/escolha-seu-plano" className="hover:text-primary transition-colors" prefetch={false}>Preços</Link></li>
             <li><Link href="/#security" className="hover:text-primary transition-colors" prefetch={false}>Segurança</Link></li>
+            <li><Link href="/faq" className="hover:text-primary transition-colors" prefetch={false}>FAQ</Link></li>
           </ul>
         </div>
         <div className="space-y-2">
