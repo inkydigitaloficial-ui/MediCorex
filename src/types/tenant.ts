@@ -1,11 +1,11 @@
-import { Timestamp } from "firebase/firestore";
 
-export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid';
+import { BaseModel } from "./base";
+
+export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid' | 'trial_expired';
 export type TenantPlan = 'free' | 'pro' | 'enterprise' | 'trial';
 
 
-export interface Tenant {
-    id?: string;
+export interface Tenant extends BaseModel {
     name: string;
     slug: string; // subdomínio
     ownerId: string; // ID do usuário que criou o tenant
@@ -14,7 +14,7 @@ export interface Tenant {
     // Subscription details
     plan: TenantPlan;
     subscriptionStatus: SubscriptionStatus;
-    trialEnds?: Timestamp;
+    trialEnds?: Date;
     stripeCustomerId?: string;
 
     settings: {
@@ -22,14 +22,13 @@ export interface Tenant {
         language?: string;
         timezone?: string;
     };
-    createdAt: Timestamp;
 }
 
-export interface TenantUser {
+export interface TenantUser extends BaseModel {
     tenantId: string;
     userId: string;
     email: string;
-    role: 'owner' | 'admin' | 'member';
+    role: 'owner' | 'admin' | 'member' | 'owner_trial_expired';
     permissions: string[];
-    joinedAt: Timestamp;
+    joinedAt: Date;
 }

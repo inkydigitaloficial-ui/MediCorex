@@ -43,7 +43,7 @@ export default function TenantLoginPage() {
       });
     }
 
-    if (state.success && state.tenantSlug && auth) {
+    if (state.success && auth) {
       setIsClientSigningIn(true);
       signInWithEmailAndPassword(auth, email, password)
         .then(async (userCredential) => {

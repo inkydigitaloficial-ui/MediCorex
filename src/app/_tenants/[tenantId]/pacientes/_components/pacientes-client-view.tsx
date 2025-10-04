@@ -54,7 +54,7 @@ function AddPacienteDialog({ tenantId, onOpenChange, open }: { tenantId: string;
         onOpenChange(false);
         router.refresh(); 
     })
-    .catch((serverError) => {
+    .catch(() => {
       const permissionError = new FirestorePermissionError({
         path: pacientesCollectionRef.path,
         operation: 'create',

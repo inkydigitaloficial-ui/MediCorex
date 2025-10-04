@@ -32,6 +32,9 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onIdTokenChanged(auth, async (user) => {
       if (user) {
         const token = await user.getIdToken();
+        // O cookie `firebaseIdToken` é usado pelo middleware no Edge.
+        // O cookie `__session` é usado pelas Server Actions/APIs no Node.js.
+        // Manter ambos pode ser necessário dependendo da arquitetura.
         document.cookie = `firebaseIdToken=${token}; path=/;`;
       } else {
         document.cookie = 'firebaseIdToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
@@ -119,7 +122,7 @@ export function useDoc<T>(ref: DocumentReference<DocumentData> | null): DocState
         const unsubscribe = onSnapshot(ref, (snapshot) => {
             setData(snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as T) : null);
             setIsLoading(false);
-        }, (error) => {
+        }, () => {
             const permissionError = new FirestorePermissionError({
               path: ref.path,
               operation: 'get',
@@ -155,7 +158,7 @@ export function useCollection<T>(query: Query | null): CollectionState<T> {
             const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as T);
             setData(items);
             setIsLoading(false);
-        }, (error) => {
+        }, () => {
             const path = (query as any)._query?.path?.segments.join('/') || 'unknown path';
             const permissionError = new FirestorePermissionError({
                 path: path,

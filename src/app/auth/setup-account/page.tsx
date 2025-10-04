@@ -54,11 +54,14 @@ export default function SetupAccountPage() {
                 toast({ title: 'Clínica Pronta!', description: 'Redirecionando para seu painel...' });
                 
                 const protocol = window.location.protocol;
-                const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || window.location.host;
-                const newUrl = `${protocol}//${result.tenantId}.${rootDomain}/dashboard`;
+                const rootDomain = window.location.host;
 
-                // Redireciona para o dashboard do tenant
-                window.location.href = newUrl;
+                 if (process.env.NODE_ENV === 'development') {
+                    router.push(`/_tenants/${result.tenantId}/dashboard`);
+                } else {
+                    const newUrl = `${protocol}//${result.tenantId}.${rootDomain}/dashboard`;
+                    window.location.href = newUrl;
+                }
 
                 } else {
                 // Se o tenant ainda não foi encontrado, tenta novamente

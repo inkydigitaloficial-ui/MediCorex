@@ -103,7 +103,7 @@ export default async function TenantLayout({ children, params }: Props) {
                 <p className="text-xs text-sidebar-foreground/70 truncate">{user.email}</p>
               </div>
               <Button variant="ghost" size="icon" asChild>
-                <Link href="/auth/logout"><LogOut className="h-4 w-4" /></Link>
+                <Link href="/api/auth/logout"><LogOut className="h-4 w-4" /></Link>
               </Button>
             </div>
           </SidebarFooter>
