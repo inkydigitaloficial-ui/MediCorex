@@ -4,6 +4,11 @@ import { TokenUtils } from '../utils/token-utils';
 import { RouteUtils } from '../utils/route-utils';
 import { ChainResult, MiddlewareContext } from '../types';
 
+// Helper function to get the root domain, safe for the edge.
+function getRootDomain() {
+  return process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:9002';
+}
+
 export class AuthChain {
   async execute(context: MiddlewareContext): Promise<ChainResult> {
     const { request, tenantId } = context;
@@ -27,7 +32,7 @@ export class AuthChain {
           const firstTenant = userTenants ? Object.keys(userTenants)[0] : null;
 
           if (firstTenant) {
-             const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:9002';
+             const rootDomain = getRootDomain();
              const redirectUrl = new URL('/dashboard', request.url);
              redirectUrl.host = `${firstTenant}.${rootDomain}`;
              return { 
