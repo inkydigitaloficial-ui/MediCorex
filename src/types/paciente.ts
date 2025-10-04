@@ -1,5 +1,5 @@
 
-import { BaseModel } from './base';
+import { BaseModel } from '@/lib/firestore/converters';
 
 /**
  * Representa o modelo de dados para um Paciente (ou Cliente) no Firestore.
