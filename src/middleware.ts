@@ -1,51 +1,54 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { RouteUtils } from './middleware/utils/route-utils';
-import { DomainUtils } from './middleware/utils/domain-utils';
-import { RewriteHandler } from './middleware/handlers/rewrite-handler';
+
+// Caminhos que devem ser ignorados pelo middleware (assets, API routes, etc.)
+const STATIC_PATHS = ['/api', '/_next/static', '/_next/image', '/favicon.ico'];
 
 /**
- * Middleware Simplificado
+ * Middleware consolidado e simplificado para lidar com o roteamento multi-tenant.
  *
  * Responsabilidades:
- * 1. Ignorar assets estáticos e rotas de API.
- * 2. Extrair o `tenantId` do subdomínio.
- * 3. Se um `tenantId` existir, reescrever a URL para a estrutura de diretório `/_tenants/[tenantId]`.
+ * 1. Extrair o `tenantId` (subdomínio) do host da requisição.
+ * 2. Se um `tenantId` for encontrado, reescrever a URL para a estrutura interna de diretório do Next.js
+ *    (ex: `acme.dominio.com/dashboard` se torna `/tenants/acme/dashboard`).
+ * 3. Ignorar assets estáticos e rotas de API para otimizar a performance.
  *
- * A lógica de autenticação e redirecionamento para login foi movida para `src/app/_tenants/[tenantId]/layout.tsx`
- * para evitar erros de 'Invalid URL' no Edge runtime.
+ * Toda a lógica de autenticação é delegada para os Server Components (layouts/páginas)
+ * para evitar erros de 'Invalid URL' no Edge Runtime.
  */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Ignora rotas de API e assets estáticos para otimizar a performance.
-  if (RouteUtils.isStaticAsset(pathname) || RouteUtils.isApiRoute(pathname)) {
+  // Ignora assets estáticos e rotas de API.
+  if (STATIC_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
 
-  // 2. Extrai o subdomínio.
-  const host = request.headers.get('host')!;
-  const tenantId = DomainUtils.getSubdomain(host);
-
-  // 3. Se houver um tenantId, reescreve a URL.
-  if (tenantId) {
-    return RewriteHandler.applyTenantRewrite(request, tenantId);
+  // Extrai o host da requisição.
+  const host = request.headers.get('host');
+  if (!host) {
+    // Se não houver host, não há como determinar o subdomínio.
+    return NextResponse.next();
   }
 
-  // Para o domínio principal e outras rotas, continua sem modificação.
+  // Extrai o subdomínio (tenantId).
+  // Esta lógica funciona para `acme.localhost:3000` e `acme.meusite.com`.
+  // O slice(0, -2) remove os dois últimos segmentos do domínio (ex: 'medicorex' e 'app').
+  const tenantId = host.split('.').slice(0, -2).join('.');
+
+  // Se um tenantId foi encontrado e não é o domínio principal (www), reescreve a URL.
+  if (tenantId && tenantId !== 'www') {
+    const newPath = `/_tenants/${tenantId}${pathname}`;
+    // Usamos new URL(newPath, request.url) que é a forma mais segura de construir a URL de reescrita.
+    const newUrl = new URL(newPath, request.url);
+    return NextResponse.rewrite(newUrl);
+  }
+
+  // Para o domínio principal ou se não houver subdomínio, continua a requisição.
   return NextResponse.next();
 }
 
-// A configuração do matcher permanece a mesma.
+// Configuração do matcher para aplicar o middleware em todas as rotas relevantes.
 export const config = {
-  matcher: [
-    /*
-     * Faz o match de todas as rotas, exceto as que começam com:
-     * - api (rotas de API)
-     * - _next/static (arquivos estáticos)
-     * - _next/image (arquivos de otimização de imagem)
-     * - favicon.ico (ícone do site)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };
