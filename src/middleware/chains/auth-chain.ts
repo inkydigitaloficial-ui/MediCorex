@@ -43,9 +43,13 @@ export class AuthChain {
     // 3. Para todas as outras rotas (protegidas)
     if (!sessionCookie) {
       // Se não há cookie de sessão, redireciona para o login.
-      // O subdomínio na URL garantirá que o login aconteça no contexto do tenant correto.
-      const loginUrl = new URL('/auth/login', request.url);
-      loginUrl.searchParams.set('redirect', pathname);
+      // A URL de redirecionamento é construída de forma relativa,
+      // preservando o host atual (subdomínio, etc.), o que funciona
+      // em todos os ambientes.
+      const loginUrl = new URL(request.nextUrl); // Clona a URL atual
+      loginUrl.pathname = '/auth/login'; // Altera apenas o caminho
+      loginUrl.searchParams.set('redirect', pathname); // Mantém o parâmetro de redirect
+      
       return { 
         shouldContinue: false, 
         response: NextResponse.redirect(loginUrl) 
