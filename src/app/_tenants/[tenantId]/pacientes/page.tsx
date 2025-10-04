@@ -57,7 +57,6 @@ export default function PacientesPage({ params }: { params: { tenantId: string }
 
   return (
     <>
-      {/* O onPatientAdded não é mais necessário, pois o useCollection atualiza a lista automaticamente */}
       <AddPacienteDialog 
         tenantId={tenantId} 
         open={isAddDialogOpen} 
@@ -75,7 +74,7 @@ export default function PacientesPage({ params }: { params: { tenantId: string }
               <div className="w-full max-w-4xl mx-auto">
                   <Card>
                       <CardHeader>
-                          <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5 text-primary" /><span>Lista de Pacientes</span></CardTitle>
+                          <CardTitle className="flex items-center gap-2 font-headline"><Users className="h-5 w-5 text-primary" /><span>Lista de Pacientes</span></CardTitle>
                           <CardDescription>Visualize e gerencie os pacientes da sua clínica.</CardDescription>
                       </CardHeader>
                       <CardContent>

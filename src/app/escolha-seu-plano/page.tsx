@@ -30,7 +30,7 @@ const PlanCard = ({
 }) => (
   <Card className={`flex flex-col ${recommended ? 'border-primary' : ''}`}>
     <CardHeader>
-      <CardTitle>{title}</CardTitle>
+      <CardTitle className="font-headline">{title}</CardTitle>
       <CardDescription>{description}</CardDescription>
     </CardHeader>
     <CardContent className="flex-1">
