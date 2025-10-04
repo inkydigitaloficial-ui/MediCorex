@@ -61,7 +61,7 @@ function LoginFormComponent() {
           // Se a action retornou um slug, o usuário tem uma clínica
           if (state.tenantSlug) {
               const protocol = window.location.protocol;
-              const host = window.location.host;
+              const host = window.location.host.replace(`www.`, ''); // Remove www
               const newUrl = `${protocol}//${state.tenantSlug}.${host}/dashboard`;
               window.location.href = newUrl;
           } else {
@@ -94,9 +94,9 @@ function LoginFormComponent() {
   const isDisabled = pending || isClientSigningIn;
 
   return (
-    <Card className="bg-background/80 backdrop-blur-lg border-white/20 shadow-xl">
-      <CardHeader className="space-y-1 text-center">
-        <CardTitle className="text-2xl font-headline">Acessar sua Clínica</CardTitle>
+    <Card className="bg-background/80 backdrop-blur-lg border-white/20 shadow-xl animate-fade-in-up">
+      <CardHeader className="text-center">
+        <CardTitle className="font-headline text-2xl">Acessar sua Clínica</CardTitle>
         <CardDescription>
           Acesse sua conta para gerenciar sua clínica.
         </CardDescription>

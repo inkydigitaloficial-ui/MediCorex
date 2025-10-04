@@ -75,7 +75,7 @@ export default function SignupPage() {
   };
 
   return (
-    <Card className="bg-background/80 backdrop-blur-lg border-white/20 shadow-xl">
+    <Card className="bg-background/80 backdrop-blur-lg border-white/20 shadow-xl animate-fade-in-up">
         <CardHeader className="text-center">
             <CardTitle className="font-headline text-2xl">Comece seu Teste Gratuito</CardTitle>
             <CardDescription>Crie sua conta. Rápido, fácil e sem compromisso. (Etapa 1 de 2)</CardDescription>
