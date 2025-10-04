@@ -22,7 +22,7 @@ function SubmitButton() {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" className="w-full" disabled={pending}>
-      {pending ? 'Verificando...' : 'Entrar'}
+      {pending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verificando...</> : 'Entrar'}
     </Button>
   );
 }
@@ -44,6 +44,7 @@ function TenantLoginComponent() {
         title: 'Erro no Login',
         description: state.error,
       });
+      setIsClientSigningIn(false);
     }
 
     if (state.success && auth) {
@@ -70,9 +71,7 @@ function TenantLoginComponent() {
             title: 'Erro no Login',
             description: error.message || 'Credenciais inválidas ou falha ao iniciar a sessão.',
           });
-        })
-        .finally(() => {
-            setIsClientSigningIn(false);
+          setIsClientSigningIn(false);
         });
     }
   }, [state, auth, email, password, toast, router]);
@@ -84,14 +83,14 @@ function TenantLoginComponent() {
       <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
           <div className="w-full max-w-sm">
               <div className="flex justify-center mb-6">
-                  <Link href="/" className="flex items-center gap-2 text-primary">
-                      <Logo className="h-8 w-8" />
+                  <Link href="/" className="flex items-center gap-2 text-foreground">
+                      <Logo className="h-8 w-8 text-primary" />
                       <span className="text-2xl font-semibold font-headline">MediCorex</span>
                   </Link>
               </div>
-              <Card>
+              <Card className="shadow-lg">
                 <CardHeader className="space-y-1 text-center">
-                  <CardTitle className="text-2xl font-headline">Acessar Clínica</CardTitle>
+                  <CardTitle className="text-2xl font-headline">Acessar sua Clínica</CardTitle>
                   <CardDescription>
                     Faça login para continuar para o seu painel.
                   </CardDescription>
