@@ -31,9 +31,10 @@ export class AuthChain {
       // Se o usuário já tem uma sessão, redireciona para a home,
       // onde a lógica de redirect para o tenant/dashboard ocorrerá.
       if (sessionCookie) {
+        const url = new URL('/', request.url);
         return { 
           shouldContinue: false, 
-          response: NextResponse.redirect(new URL('/', request.url)) 
+          response: NextResponse.redirect(url) 
         };
       }
       // Se não tem sessão, permite o acesso à página de login/cadastro.
@@ -43,16 +44,14 @@ export class AuthChain {
     // 3. Para todas as outras rotas (protegidas)
     if (!sessionCookie) {
       // Se não há cookie de sessão, redireciona para o login.
-      // A URL de redirecionamento é construída de forma relativa,
-      // preservando o host atual (subdomínio, etc.), o que funciona
-      // em todos os ambientes.
-      const loginUrl = new URL(request.nextUrl); // Clona a URL atual
-      loginUrl.pathname = '/auth/login'; // Altera apenas o caminho
-      loginUrl.searchParams.set('redirect', pathname); // Mantém o parâmetro de redirect
-      
+      // Esta é a forma canônica e segura de redirecionar para uma nova página
+      // preservando o host, porta e protocolo da requisição original.
+      const loginUrl = new URL('/auth/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+
       return { 
         shouldContinue: false, 
-        response: NextResponse.redirect(loginUrl) 
+        response: NextResponse.redirect(loginUrl)
       };
     }
 
