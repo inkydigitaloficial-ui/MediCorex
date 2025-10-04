@@ -32,7 +32,9 @@ export async function loginAction(prevState: LoginFormState, formData: FormData)
         const tenantUsersSnapshot = await adminFirestore.collection('tenant_users').where('userId', '==', userRecord.uid).limit(1).get();
 
         if (tenantUsersSnapshot.empty) {
-            return { error: 'Sua clínica ainda está sendo preparada. Tente novamente em alguns instantes.', success: false };
+            // Se o usuário existe mas não tem tenant, é um novo cadastro.
+            // O front-end o levará para a página de criação da clínica.
+            return { success: true, error: null, tenantSlug: null };
         }
 
         const firstTenant = tenantUsersSnapshot.docs[0].data();
@@ -45,32 +47,6 @@ export async function loginAction(prevState: LoginFormState, formData: FormData)
         console.error("Erro durante o login na Action:", error);
         return { error: 'Credenciais inválidas. Verifique seu email e senha.', success: false };
     }
-}
-
-
-type FindTenantState = {
-  error: string | null;
-  tenantId: string | null;
-};
-
-export async function findUserTenantAction(userId: string): Promise<FindTenantState> {
-  if (!userId) {
-    return { error: 'ID do usuário não fornecido.', tenantId: null };
-  }
-
-  try {
-    const tenantUsersSnapshot = await adminFirestore.collection('tenant_users').where('userId', '==', userId).limit(1).get();
-
-    if (tenantUsersSnapshot.empty) {
-      return { error: 'Tenant não encontrado ainda.', tenantId: null };
-    }
-
-    const tenantData = tenantUsersSnapshot.docs[0].data();
-    return { error: null, tenantId: tenantData.tenantId };
-  } catch (error) {
-    console.error('Erro ao buscar tenant do usuário na Action:', error);
-    return { error: 'Ocorreu um erro no servidor ao procurar sua clínica.', tenantId: null };
-  }
 }
 
 // --- Nova Ação para Criar a Clínica ---

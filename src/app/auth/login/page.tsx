@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useFormStatus } from 'react-dom';
@@ -50,33 +49,33 @@ function LoginFormComponent() {
         title: 'Erro no Login',
         description: state.error,
       });
+      setIsClientSigningIn(false); // Garante que o estado de loading é resetado
     }
 
-    if (state.success && state.tenantSlug && auth && rootDomain) {
+    if (state.success && auth && rootDomain) {
       setIsClientSigningIn(true);
       signInWithEmailAndPassword(auth, email, password)
         .then(async (userCredential) => {
           const idToken = await userCredential.user.getIdToken();
-          const sessionResult = await createSessionCookie(idToken);
+          await createSessionCookie(idToken);
 
-          if (sessionResult.status === 'success') {
-            toast({
-              title: 'Login bem-sucedido!',
-              description: 'Redirecionando para seu painel...',
-            });
-            const protocol = window.location.protocol;
-            
-            // Em dev, redirecionamos para a página que simula o tenant
-            // Em prod, para o subdomínio real
-            if (process.env.NODE_ENV === 'development') {
-                router.push(`/_tenants/${state.tenantSlug}/dashboard`);
-            } else {
-                const newUrl = `${protocol}//${state.tenantSlug}.${rootDomain}`;
-                window.location.href = newUrl;
-            }
+          toast({
+            title: 'Login bem-sucedido!',
+            description: 'Redirecionando...',
+          });
 
+          // Se a action retornou um slug, o usuário tem uma clínica
+          if (state.tenantSlug) {
+              const protocol = window.location.protocol;
+              if (process.env.NODE_ENV === 'development') {
+                  router.push(`/_tenants/${state.tenantSlug}/dashboard`);
+              } else {
+                  const newUrl = `${protocol}//${state.tenantSlug}.${rootDomain}/dashboard`;
+                  window.location.href = newUrl;
+              }
           } else {
-            throw new Error(sessionResult.message);
+              // Se não retornou slug, é um novo usuário que precisa criar uma clínica
+              router.push('/auth/create-clinic');
           }
         })
         .catch((error) => {
@@ -85,9 +84,7 @@ function LoginFormComponent() {
             title: 'Erro no Login',
             description: error.message || 'Credenciais inválidas ou falha ao iniciar a sessão.',
           });
-        })
-        .finally(() => {
-            setIsClientSigningIn(false);
+           setIsClientSigningIn(false);
         });
     }
   }, [state, auth, email, password, toast, rootDomain, router]);
