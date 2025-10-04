@@ -12,6 +12,8 @@ import { addDoc, collection, serverTimestamp, DocumentReference } from 'firebase
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase/hooks';
 import { FilePlus2, Loader2 } from 'lucide-react';
+import { baseConverter } from '@/lib/firestore/converters';
+import { Consulta } from '@/types/consulta';
 
 const consultaSchema = z.object({
     summary: z.string().min(10, { message: 'A anotação deve ter pelo menos 10 caracteres.' }),
@@ -40,13 +42,13 @@ export function AddConsultaForm({ pacienteRef }: AddConsultaFormProps) {
             return;
         }
 
-        const consultasCollectionRef = collection(pacienteRef, 'consultas');
+        const consultasCollectionRef = collection(pacienteRef, 'consultas').withConverter(baseConverter<Consulta>());
         
         try {
             await addDoc(consultasCollectionRef, {
-                ...data,
+                summary: data.summary,
                 createdBy: user.uid,
-                createdAt: serverTimestamp(),
+                // O `createdAt` será adicionado pelo `baseConverter`
             });
 
             toast({

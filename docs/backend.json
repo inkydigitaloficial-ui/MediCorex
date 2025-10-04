@@ -69,7 +69,7 @@
         "createdBy": { "type": "string", "description": "UID do usuário que criou o registro" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["summary", "createdBy"]
+      "required": ["summary", "createdBy", "createdAt"]
     },
     "AIAuditEntry": {
       "title": "AIAuditEntry",
