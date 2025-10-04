@@ -1,35 +1,35 @@
+
 import { type NextRequest, NextResponse } from 'next/server';
 import { adminAuth } from '@/lib/firebase/admin';
 
 /**
- * Rota de API dedicada para validar um ID Token do Firebase.
- * Esta rota roda no ambiente Node.js, permitindo o uso seguro do Firebase Admin SDK.
+ * Rota de API dedicada para validar um cookie de sessão do Firebase.
  * O middleware delega a validação para esta API para contornar as restrições do Edge Runtime.
  */
 export async function POST(request: NextRequest) {
+  const sessionCookie = request.cookies.get('__session')?.value;
+
+  if (!sessionCookie) {
+    return NextResponse.json({ error: 'Sessão não encontrada.' }, { status: 401 });
+  }
+
   try {
-    const { token } = await request.json();
+    // Usa o adminAuth para verificar a validade do cookie de sessão.
+    // O segundo argumento `true` verifica se a sessão foi revogada.
+    const decodedToken = await adminAuth.verifySessionCookie(sessionCookie, true);
 
-    if (!token) {
-      return NextResponse.json({ error: 'Token não fornecido.' }, { status: 400 });
-    }
-
-    // Usa o adminAuth para verificar a validade do token.
-    // O segundo argumento `true` verifica se o token foi revogado.
-    const decodedToken = await adminAuth.verifyIdToken(token, true);
-
-    // Retorna o token decodificado, que inclui UID, email, e custom claims.
+    // Retorna os dados do token decodificado, que inclui UID, email, e custom claims.
     return NextResponse.json(decodedToken, { status: 200 });
     
   } catch (error: any) {
-    console.error('[API Verify Token] Erro:', error.code, error.message);
-    
     let errorMessage = 'Token inválido.';
-    if (error.code === 'auth/id-token-expired') {
-      errorMessage = 'Token expirado.';
-    } else if (error.code === 'auth/id-token-revoked') {
-      errorMessage = 'Token revogado.';
+    if (error.code === 'auth/session-cookie-expired') {
+      errorMessage = 'Sessão expirada.';
+    } else if (error.code === 'auth/session-cookie-revoked') {
+      errorMessage = 'Sessão revogada.';
     }
+    
+    console.error('[API Verify Token] Erro:', error.code, errorMessage);
 
     return NextResponse.json({ error: errorMessage }, { status: 401 });
   }

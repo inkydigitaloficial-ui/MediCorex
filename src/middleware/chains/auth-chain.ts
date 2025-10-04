@@ -21,7 +21,7 @@ export class AuthChain {
       // Se o usuário já tem um token válido, ele não deveria estar na página de login.
       // Redirecionamos para o dashboard.
       if (token) {
-        const authResult = await TokenUtils.validateToken(request, token, tenantId || undefined);
+        const authResult = await TokenUtils.validateToken(token, request.headers);
         if (authResult.isValid) {
           const userTenants = authResult.user.tenants as { [key: string]: string } | undefined;
           const firstTenant = userTenants ? Object.keys(userTenants)[0] : null;
@@ -59,7 +59,7 @@ export class AuthChain {
     }
     
     // Valida o token usando a API interna.
-    const authResult = await TokenUtils.validateToken(request, token, tenantId || undefined);
+    const authResult = await TokenUtils.validateToken(token, request.headers);
     
     if (!authResult.isValid) {
         // Se o token expirou ou foi revogado, limpa o cookie e redireciona para o login.
@@ -71,6 +71,12 @@ export class AuthChain {
        // Se o usuário não tem acesso ao tenant específico, redireciona para não autorizado.
       const unauthorizedUrl = new URL('/auth/unauthorized', request.url);
       return { shouldContinue: false, response: NextResponse.redirect(unauthorizedUrl) };
+    }
+
+    // Validação de acesso ao tenant
+    if(tenantId && !(authResult.user.tenants && authResult.user.tenants[tenantId])) {
+        const unauthorizedUrl = new URL('/auth/unauthorized', request.url);
+        return { shouldContinue: false, response: NextResponse.redirect(unauthorizedUrl) };
     }
     
     // Se a validação foi bem-sucedida, enriquece o contexto com os dados do usuário.

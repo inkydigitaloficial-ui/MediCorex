@@ -7,38 +7,33 @@ import { TenantChain } from './middleware/chains/tenant-chain';
 import { ErrorHandler } from './middleware/handlers/error-handler';
 import { MiddlewareContext } from './middleware/types';
 import { middlewareConfig } from './middleware/config';
-import { getCurrentUser } from './utils/session'; // Importa a função de sessão do servidor
 
 export async function middleware(request: NextRequest) {
   try {
     const { pathname } = request.nextUrl;
 
     // Ignora rotas de API e assets estáticos para otimizar a performance.
-    if (RouteUtils.isStaticAsset(pathname) || RouteUtils.isApiRoute(pathname)) {
+    if (RouteUtils.isStaticAsset(pathname) || pathname.startsWith('/api')) { // Verificação da API movida para cá.
       return NextResponse.next();
     }
 
     const tenantId = DomainUtils.extractSubdomain(request.headers.get('host'));
-    const authContext = await getCurrentUser(tenantId); // Fonte de verdade para autenticação
 
     let context: MiddlewareContext = {
       request,
       response: NextResponse.next(),
       tenantId: tenantId,
-      user: authContext?.user || null,
+      user: null, // O usuário será preenchido pela AuthChain
       config: middlewareConfig,
     };
     
-    // A AuthChain agora pode ser simplificada, pois a validação de sessão principal já ocorreu.
-    // Vamos manter por enquanto para a lógica de redirecionamento.
     const chains = [
       new AuthChain(),
       new TenantChain(),
     ];
 
     for (const chain of chains) {
-      // Passa o contexto atualizado (com 'user' já preenchido) para a cadeia.
-      const result = await chain.execute({ ...context, user: authContext?.user || null });
+      const result = await chain.execute(context);
       
       if (!result.shouldContinue) {
         return result.response!;
@@ -61,11 +56,11 @@ export const config = {
   matcher: [
     /*
      * Faz o match de todas as rotas, exceto as que começam com:
-     * - api (rotas de API)
+     * - api (rotas de API, tratadas no início do middleware)
      * - _next/static (arquivos estáticos)
      * - _next/image (arquivos de otimização de imagem)
      * - favicon.ico (ícone do site)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };
