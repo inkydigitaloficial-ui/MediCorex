@@ -34,9 +34,8 @@ export default function TenantDashboard({ params }: TenantDashboardProps) {
         </h1>
       </div>
       
-      {/* Glassmorphism Header Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-background/60 backdrop-blur-sm border-white/20">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Pacientes</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -46,7 +45,7 @@ export default function TenantDashboard({ params }: TenantDashboardProps) {
             <p className="text-xs text-muted-foreground">+5 no último mês</p>
           </CardContent>
         </Card>
-        <Card className="bg-background/60 backdrop-blur-sm border-white/20">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Agendamentos (Mês)</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -56,7 +55,7 @@ export default function TenantDashboard({ params }: TenantDashboardProps) {
             <p className="text-xs text-muted-foreground">+12% vs. mês passado</p>
           </CardContent>
         </Card>
-        <Card className="bg-background/60 backdrop-blur-sm border-white/20">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Novos Pacientes</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
