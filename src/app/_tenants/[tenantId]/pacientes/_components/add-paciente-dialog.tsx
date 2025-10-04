@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { baseConverter } from '@/lib/firestore/converters';
 import { Paciente } from '@/types/paciente';
 
 const pacienteSchema = z.object({
@@ -43,11 +42,12 @@ export function AddPacienteDialog({ tenantId, onOpenChange, open }: AddPacienteD
 
     const pacientesCollectionRef = collection(firestore, `tenants/${tenantId}/pacientes`);
     
-    // O baseConverter não é mais necessário aqui, pois vamos lidar com o timestamp diretamente
-    addDoc(pacientesCollectionRef, {
-      ...data,
-      createdAt: serverTimestamp() // Adiciona o timestamp na criação
-    })
+    const newPacienteData: Omit<Paciente, 'id' | 'createdAt'> & { createdAt: any } = {
+        ...data,
+        createdAt: serverTimestamp() 
+    };
+
+    addDoc(pacientesCollectionRef, newPacienteData)
     .then(() => {
         toast({
             title: 'Paciente adicionado!',

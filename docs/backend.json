@@ -67,13 +67,6 @@
         "summary": { "type": "string" }
       }
     },
-    "Product": {
-      "title": "Product",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" }
-      }
-    },
     "AIGeneration": {
       "title": "AIGeneration",
       "type": "object",
