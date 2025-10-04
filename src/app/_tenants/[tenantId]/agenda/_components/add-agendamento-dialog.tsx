@@ -90,11 +90,14 @@ export function AddAgendamentoDialog({ tenantId, onOpenChange, open, selectedDat
         onOpenChange(false);
     })
     .catch((error) => {
+      // User-facing error
       toast({
         variant: 'destructive',
         title: 'Falha ao criar agendamento',
         description: 'Você não tem permissão para executar esta ação.',
       });
+
+      // Developer-facing error for debugging
       const permissionError = new FirestorePermissionError({
         path: agendamentosCollectionRef.path,
         operation: 'create',
@@ -184,4 +187,3 @@ export function AddAgendamentoDialog({ tenantId, onOpenChange, open, selectedDat
     </Dialog>
   );
 }
-
