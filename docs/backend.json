@@ -55,7 +55,9 @@
       "type": "object",
       "properties": {
         "nome": { "type": "string" },
-        "email": { "type": "string", "format": "email" }
+        "email": { "type": "string", "format": "email" },
+        "cpf": { "type": "string" },
+        "telefone": { "type": "string" }
       },
        "required": ["nome", "email"]
     },
@@ -63,16 +65,21 @@
       "title": "Consulta",
       "type": "object",
       "properties": {
-        "date": { "type": "string", "format": "date-time" },
-        "summary": { "type": "string" }
-      }
+        "summary": { "type": "string", "description": "O resumo ou anotações da consulta" },
+        "createdBy": { "type": "string", "description": "UID do usuário que criou o registro" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["summary", "createdBy"]
     },
-    "AIGeneration": {
-      "title": "AIGeneration",
+    "AIAuditEntry": {
+      "title": "AIAuditEntry",
       "type": "object",
+      "description": "Entrada de auditoria para uma geração de IA.",
       "properties": {
-        "input": { "type": "object" },
-        "output": { "type": "object" }
+        "prompt": { "type": "string" },
+        "resumo": { "type": "string" },
+        "geradoEm": { "type": "string", "format": "date-time" },
+        "geradoPor": { "type": "string" }
       }
     }
   },
@@ -88,9 +95,13 @@
       "schema": { "$ref": "#/entities/Paciente" },
       "description": "Subcoleção para os pacientes específicos de um tenant."
     },
-    "tenants/{tenantId}/consultas/{consultaId}": {
+    "tenants/{tenantId}/pacientes/{pacienteId}/consultas/{consultaId}": {
       "schema": { "$ref": "#/entities/Consulta" },
-      "description": "Subcoleção para os agendamentos de um tenant."
+      "description": "Subcoleção para as consultas e anotações de um paciente."
+    },
+    "tenants/{tenantId}/pacientes/{pacienteId}/ai_audit_trail/{auditId}": {
+      "schema": { "$ref": "#/entities/AIAuditEntry" },
+      "description": "Trilha de auditoria para resumos gerados por IA para um paciente."
     },
     "tenant_users/{docId}": {
       "schema": { "$ref": "#/entities/TenantUser" },

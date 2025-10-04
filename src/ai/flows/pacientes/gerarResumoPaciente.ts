@@ -12,6 +12,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 // Importa a instância única e já inicializada do Firestore Admin.
 import { adminFirestore } from '@/lib/firebase/admin';
+import { Consulta } from '@/types/consulta';
 
 const GerarResumoPacienteInputSchema = z.object({
   tenantId: z.string().min(1, "tenantId é obrigatório"),
@@ -39,18 +40,19 @@ const gerarResumoPacienteFlow = ai.defineFlow({
       throw new Error(`Acesso negado: Usuário ${userId} não pertence ao tenant ${tenantId}.`);
   }
 
-  // Busca os dados do paciente
+  // Busca os dados do paciente e suas últimas consultas
   const pacienteDocRef = adminFirestore.doc(`tenants/${tenantId}/pacientes/${pacienteId}`);
-  const pacienteDoc = await pacienteDocRef.get();
+  const [pacienteDoc, consultasSnapshot] = await Promise.all([
+    pacienteDocRef.get(),
+    pacienteDocRef.collection('consultas').orderBy('createdAt', 'desc').limit(5).get()
+  ]);
 
   if (!pacienteDoc.exists) {
     throw new Error(`Paciente com ID ${pacienteId} não encontrado no tenant ${tenantId}.`);
   }
 
   const pacienteData = pacienteDoc.data();
-  // Em um caso real, você buscaria o histórico de consultas aqui.
-  // const consultasSnapshot = await pacienteDocRef.collection('consultas').orderBy('date', 'desc').limit(5).get();
-  // const ultimasConsultas = consultasSnapshot.docs.map(doc => doc.data());
+  const ultimasConsultas = consultasSnapshot.docs.map(doc => doc.data() as Consulta);
   
   const prompt = `
     Você é um assistente médico altamente qualificado. Sua tarefa é analisar os dados de um paciente e o
@@ -60,7 +62,8 @@ const gerarResumoPacienteFlow = ai.defineFlow({
 
     Dados do Paciente: ${JSON.stringify(pacienteData)}
     
-    Últimas Consultas: [Dados das últimas 5 consultas seriam inseridos aqui]
+    Histórico das Últimas Consultas:
+    ${ultimasConsultas.length > 0 ? ultimasConsultas.map(c => `- Em ${c.createdAt.toDate().toLocaleDateString()}: ${c.summary}`).join('\n') : 'Nenhuma consulta registrada ainda.'}
   `;
 
   const llmResponse = await ai.generate({
@@ -72,8 +75,9 @@ const gerarResumoPacienteFlow = ai.defineFlow({
   const resumo = llmResponse.text;
 
   // 💾 Salva o resumo gerado para fins de auditoria
-  await pacienteDocRef.collection('historico_ia').add({
+  await pacienteDocRef.collection('ai_audit_trail').add({
     resumo: resumo,
+    prompt: prompt,
     geradoEm: new Date(),
     geradoPor: userId,
   });
