@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { AddPacienteDialog } from './_components/add-paciente-dialog';
 import Link from 'next/link';
+import { baseConverter } from '@/lib/firestore/converters';
 
 function PacienteListItem({ paciente, tenantId }: { paciente: Paciente, tenantId: string }) {
     return (
@@ -47,7 +48,7 @@ export default function PacientesPage({ params }: { params: { tenantId: string }
   const pacientesQuery = useMemoFirebase(() => {
     if (!firestore || !tenantId) return null;
     return query(
-      collection(firestore, `tenants/${tenantId}/pacientes`), 
+      collection(firestore, `tenants/${tenantId}/pacientes`).withConverter(baseConverter<Paciente>()), 
       orderBy('createdAt', 'desc')
     );
   }, [firestore, tenantId]);
@@ -56,7 +57,12 @@ export default function PacientesPage({ params }: { params: { tenantId: string }
 
   return (
     <>
-      <AddPacienteDialog tenantId={tenantId} open={isAddDialogOpen} onOpenChange={setAddDialogOpen} />
+      {/* O onPatientAdded não é mais necessário, pois o useCollection atualiza a lista automaticamente */}
+      <AddPacienteDialog 
+        tenantId={tenantId} 
+        open={isAddDialogOpen} 
+        onOpenChange={setAddDialogOpen} 
+      />
       <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
           <div className="flex items-center justify-between">
               <h1 className="text-lg font-semibold md:text-2xl font-headline">Pacientes</h1>

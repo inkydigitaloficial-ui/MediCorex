@@ -29,10 +29,9 @@ interface AddPacienteDialogProps {
     tenantId: string;
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onPatientAdded: () => void;
 }
 
-export function AddPacienteDialog({ tenantId, onOpenChange, open, onPatientAdded }: AddPacienteDialogProps) {
+export function AddPacienteDialog({ tenantId, onOpenChange, open }: AddPacienteDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const form = useForm<PacienteFormData>({
@@ -40,7 +39,7 @@ export function AddPacienteDialog({ tenantId, onOpenChange, open, onPatientAdded
     defaultValues: { nome: '', email: '', cpf: '', telefone: '' },
   });
 
-  const onSubmit = async (data: PacienteFormData) => {
+  const onSubmit = (data: PacienteFormData) => {
     if (!firestore || !tenantId) return;
 
     const pacientesCollectionRef = collection(firestore, `tenants/${tenantId}/pacientes`).withConverter(baseConverter<Omit<Paciente, 'id'>>());
@@ -53,7 +52,7 @@ export function AddPacienteDialog({ tenantId, onOpenChange, open, onPatientAdded
         });
         form.reset();
         onOpenChange(false);
-        onPatientAdded(); // Callback para atualizar a lista no componente pai
+        // O onPatientAdded não é mais necessário aqui, o useCollection cuida da atualização.
     })
     .catch(() => {
       const permissionError = new FirestorePermissionError({
