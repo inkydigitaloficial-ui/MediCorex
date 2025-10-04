@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowRight, Building, CircuitBoard, Lock, CheckCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -180,8 +180,43 @@ export default function Home() {
                 </p>
             </div>
             
-            <div className="mx-auto grid max-w-4xl items-stretch gap-8 sm:grid-cols-2">
+            <div className="mx-auto grid max-w-6xl items-stretch gap-8 sm:grid-cols-1 lg:grid-cols-3">
               <Card className="flex flex-col animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                <CardHeader>
+                  <CardTitle className="font-headline">Básico</CardTitle>
+                   <CardDescription>Ideal para profissionais individuais.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1 space-y-4">
+                  <div className="text-4xl font-bold">R$79<span className="text-lg font-normal text-muted-foreground">/mês</span></div>
+                  <ul className="space-y-2 text-left">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                      <span>Até 3 usuários</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                      <span>Agenda e Prontuários</span>
+                    </li>
+                     <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                      <span>IA Padrão (50 resumos/mês)</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                      <span>Suporte via Email</span>
+                    </li>
+                  </ul>
+                </CardContent>
+                <CardFooter>
+                    <Button asChild className="w-full" variant="outline">
+                        <Link href="/auth/signup" prefetch={false}>
+                          Iniciar Teste Gratuito
+                        </Link>
+                    </Button>
+                </CardFooter>
+              </Card>
+
+              <Card className="flex flex-col animate-fade-in-up border-primary ring-2 ring-primary shadow-xl" style={{ animationDelay: '0.3s' }}>
                 <CardHeader>
                   <CardTitle className="font-headline">Profissional</CardTitle>
                    <CardDescription>O mais popular para clínicas em crescimento.</CardDescription>
@@ -195,7 +230,7 @@ export default function Home() {
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle className="h-4 w-4 text-primary" />
-                      <span>Agenda e Prontuários</span>
+                      <span>Tudo do plano Básico</span>
                     </li>
                      <li className="flex items-center gap-2">
                       <CheckCircle className="h-4 w-4 text-primary" />
@@ -207,15 +242,16 @@ export default function Home() {
                     </li>
                   </ul>
                 </CardContent>
-                <CardContent>
+                <CardFooter>
                     <Button asChild className="w-full">
                         <Link href="/auth/signup" prefetch={false}>
                           Iniciar Teste Gratuito
                         </Link>
                     </Button>
-                </CardContent>
+                </CardFooter>
               </Card>
-               <Card className="flex flex-col animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+              
+               <Card className="flex flex-col animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
                 <CardHeader>
                   <CardTitle className="font-headline">Enterprise</CardTitle>
                   <CardDescription>Para grandes hospitais e redes.</CardDescription>
@@ -241,13 +277,13 @@ export default function Home() {
                     </li>
                   </ul>
                 </CardContent>
-                <CardContent>
+                <CardFooter>
                     <Button asChild variant="outline" className="w-full">
                         <Link href="#" prefetch={false}>
                           Entre em Contato
                         </Link>
                     </Button>
-                </CardContent>
+                </CardFooter>
               </Card>
             </div>
              <Button asChild variant="link" className="mt-6">
