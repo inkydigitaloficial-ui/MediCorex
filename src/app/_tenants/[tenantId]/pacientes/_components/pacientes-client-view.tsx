@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { baseConverter, BaseModel } from '@/lib/firestore/converters';
+import { baseConverter } from '@/lib/firestore/converters';
 
 const pacienteSchema = z.object({
   nome: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres.' }),
@@ -30,13 +30,10 @@ const pacienteSchema = z.object({
 
 type PacienteFormData = z.infer<typeof pacienteSchema>;
 
-// Tipagem estendida para Paciente para compatibilidade com o novo baseConverter
-interface PacienteModel extends Paciente, BaseModel {}
-
 function AddPacienteDialog({ tenantId, onOpenChange, open }: { tenantId: string; open: boolean; onOpenChange: (open: boolean) => void; }) {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const router = useRouter(); // Hook para invalidação do cache
+  const router = useRouter(); 
   const form = useForm<PacienteFormData>({
     resolver: zodResolver(pacienteSchema),
     defaultValues: { nome: '', email: '', cpf: '', telefone: '' },
@@ -45,9 +42,9 @@ function AddPacienteDialog({ tenantId, onOpenChange, open }: { tenantId: string;
   const onSubmit = async (data: PacienteFormData) => {
     if (!firestore || !tenantId) return;
 
-    const pacientesCollectionRef = collection(firestore, `tenants/${tenantId}/pacientes`).withConverter(baseConverter<PacienteModel>());
+    const pacientesCollectionRef = collection(firestore, `tenants/${tenantId}/pacientes`).withConverter(baseConverter<Paciente>());
     
-    addDoc(pacientesCollectionRef, data as Omit<PacienteModel, 'id'>)
+    addDoc(pacientesCollectionRef, data as Omit<Paciente, 'id'>)
     .then(() => {
         toast({
             title: 'Paciente adicionado!',
@@ -55,7 +52,7 @@ function AddPacienteDialog({ tenantId, onOpenChange, open }: { tenantId: string;
         });
         form.reset();
         onOpenChange(false);
-        router.refresh(); // Invalida o cache do Server Component, buscando os dados atualizados
+        router.refresh(); 
     })
     .catch((serverError) => {
       const permissionError = new FirestorePermissionError({
@@ -107,8 +104,7 @@ function PacienteListItem({ paciente, tenantId }: { paciente: Paciente, tenantId
     )
 }
 
-// Este componente agora recebe os pacientes pré-buscados do servidor
-export function PacientesClientView({ pacientes, tenantId }: { pacientes: PacienteModel[], tenantId: string }) {
+export function PacientesClientView({ pacientes, tenantId }: { pacientes: Paciente[], tenantId: string }) {
     const [isAddDialogOpen, setAddDialogOpen] = useState(false);
 
     if (!tenantId) {

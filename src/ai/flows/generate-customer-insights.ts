@@ -28,7 +28,7 @@ const GenerateCustomerInsightsOutputSchema = z.object({
 });
 export type GenerateCustomerInsightsOutput = z.infer<typeof GenerateCustomerInsightsOutputSchema>;
 
-const generateCustomerInsightsFlow = ai.defineFlow(
+export const generateCustomerInsightsFlow = ai.defineFlow(
   {
     name: 'generateCustomerInsightsFlow',
     inputSchema: GenerateCustomerInsightsInputSchema,
@@ -118,7 +118,3 @@ const generateCustomerInsightsFlow = ai.defineFlow(
     }
   }
 );
-
-export async function generateCustomerInsights(input: GenerateCustomerInsightsInput): Promise<GenerateCustomerInsightsOutput> {
-  return generateCustomerInsightsFlow(input);
-}
