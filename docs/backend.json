@@ -72,6 +72,20 @@
       },
       "required": ["summary", "createdBy", "createdAt"]
     },
+    "Agendamento": {
+      "title": "Agendamento",
+      "type": "object",
+      "description": "Representa um agendamento na agenda da clínica.",
+      "properties": {
+        "pacienteId": { "type": "string", "description": "ID do paciente agendado." },
+        "pacienteNome": { "type": "string", "description": "Nome do paciente para exibição rápida." },
+        "start": { "type": "string", "format": "date-time", "description": "Início do agendamento." },
+        "title": { "type": "string", "description": "Um título ou breve descrição para o agendamento." },
+        "status": { "type": "string", "enum": ["agendado", "confirmado", "cancelado", "realizado"], "description": "Status do agendamento." },
+        "createdBy": { "type": "string", "description": "UID do usuário que criou o agendamento." }
+      },
+      "required": ["pacienteId", "pacienteNome", "start", "title", "status", "createdBy"]
+    },
     "AIAuditEntry": {
       "title": "AIAuditEntry",
       "type": "object",
@@ -103,6 +117,10 @@
     "tenants/{tenantId}/pacientes/{pacienteId}/ai_audit_trail/{auditId}": {
       "schema": { "$ref": "#/entities/AIAuditEntry" },
       "description": "Trilha de auditoria para resumos gerados por IA para um paciente."
+    },
+    "tenants/{tenantId}/agendamentos/{agendamentoId}": {
+      "schema": { "$ref": "#/entities/Agendamento" },
+      "description": "Subcoleção para os agendamentos de um tenant."
     },
     "tenant_users/{docId}": {
       "schema": { "$ref": "#/entities/TenantUser" },
