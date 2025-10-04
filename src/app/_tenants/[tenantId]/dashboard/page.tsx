@@ -9,10 +9,10 @@ import { useTenant } from "@/components/providers/tenant-provider";
 
 const chartData = [
   { name: 'Jan', value: 400 },
-  { name: 'Feb', value: 300 },
+  { name: 'Fev', value: 300 },
   { name: 'Mar', value: 600 },
-  { name: 'Apr', value: 800 },
-  { name: 'May', value: 500 },
+  { name: 'Abr', value: 800 },
+  { name: 'Mai', value: 500 },
   { name: 'Jun', value: 700 },
 ];
 
@@ -28,10 +28,10 @@ export default function TenantDashboard({ params }: TenantDashboardProps) {
   return (
     <div className="flex flex-col space-y-8">
       <div>
-        <p className="text-muted-foreground">Visão Geral da Clínica</p>
         <h1 className="text-3xl font-bold tracking-tight font-headline text-foreground">
-          {tenant?.name || `Dashboard da Clínica`}
+          {tenant?.name ? `Dashboard de ${tenant.name}` : `Dashboard da Clínica`}
         </h1>
+        <p className="text-muted-foreground">Bem-vindo(a) de volta! Aqui está um resumo da sua clínica.</p>
       </div>
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -65,7 +65,7 @@ export default function TenantDashboard({ params }: TenantDashboardProps) {
             <p className="text-xs text-muted-foreground">Neste mês</p>
           </CardContent>
         </Card>
-        <Card className="bg-primary/10 border-primary/20">
+        <Card className="bg-primary/10 border-primary/20 hover:bg-primary/20 transition-colors cursor-pointer">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-primary">Ações Rápidas</CardTitle>
             <Zap className="h-4 w-4 text-primary" />
