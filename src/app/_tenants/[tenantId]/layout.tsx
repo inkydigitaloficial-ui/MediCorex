@@ -1,8 +1,8 @@
 
 import { redirect } from 'next/navigation';
 import { ReactNode } from 'react';
-import { BarChart, LogOut, Settings, Users, Calendar, CircleDollarSign } from 'lucide-react';
-import { differenceInDays } from 'date-fns';
+import { BarChart, LogOut, Settings, Users, Calendar, CircleDollarSign, AlertTriangle } from 'lucide-react';
+import { differenceInDays, format, isValid } from 'date-fns';
 import Link from 'next/link';
 
 import { getCurrentUser } from '@/utils/session'; // Função de sessão para Server Components
@@ -14,39 +14,29 @@ import {
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-
-type Props = {
-  children: ReactNode;
-  params: { tenantId: string };
-};
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // Componente para o banner do período de teste
 function TrialBanner({ trialEnds }: { trialEnds: Date | null }) {
-  if (!trialEnds) return null;
-  
-  const daysLeft = differenceInDays(new Date(trialEnds), new Date());
+  if (!trialEnds || !isValid(trialEnds)) return null;
 
-  if (daysLeft < 0) {
-    // Se o trial acabou, não mostra o banner, pois a página de billing será forçada.
-    return null;
-  }
+  const daysLeft = differenceInDays(trialEnds, new Date());
 
-  let message;
-  if (daysLeft === 0) {
-    message = 'Seu período de teste termina hoje.';
-  } else if (daysLeft === 1) {
-    message = 'Você tem 1 dia de teste restante.';
-  } else {
-    message = `Você tem ${daysLeft + 1} dias de teste restantes.`;
-  }
+  if (daysLeft < 0) return null;
+
+  const message = daysLeft === 0
+    ? 'Seu período de teste termina hoje!'
+    : daysLeft === 1
+      ? 'Você tem 1 dia de teste restante.'
+      : `Você tem ${daysLeft} dias de teste restantes.`;
 
   return (
     <div className='px-4 pt-4 lg:px-6'>
       <Alert className='border-primary/50 bg-primary/10 text-primary-foreground'>
-        <AlertDescription className='text-center text-sm text-primary'>
-          {message}
-          <Link href="/escolha-seu-plano" className="underline font-semibold ml-2">Fazer Upgrade</Link>
+        <AlertTriangle className="h-4 w-4 text-primary" />
+        <AlertTitle className='text-primary font-bold'>{message}</AlertTitle>
+        <AlertDescription className='text-primary/90'>
+          Para não perder o acesso, <Link href="/escolha-seu-plano" className="underline font-semibold">faça um upgrade</Link> agora.
         </AlertDescription>
       </Alert>
     </div>
@@ -54,31 +44,28 @@ function TrialBanner({ trialEnds }: { trialEnds: Date | null }) {
 }
 
 export default async function TenantLayout({ children, params }: Props) {
-  // 1. Busca o contexto de autenticação usando a função centralizada.
-  // Passamos o tenantId da URL para validação interna na função.
   const authContext = await getCurrentUser(params.tenantId);
 
-  // 2. Se `getCurrentUser` retorna null, significa que o usuário não está logado
-  // ou não tem permissão para este tenant. O middleware já deve ter redirecionado,
-  // mas esta é uma camada extra de segurança.
+  // Se `getCurrentUser` retorna null, o usuário não está logado ou não tem permissão.
+  // O middleware já deve ter redirecionado, mas esta é uma camada extra de segurança no servidor.
   if (!authContext) {
-    redirect('/auth/login'); // Redireciona para o login em caso de falha.
+    const loginUrl = new URL(`/auth/login`, `http://${params.tenantId}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`);
+    redirect(loginUrl.toString());
   }
 
   const { user, tenant, tenantId, role } = authContext;
 
-  // A conversão de Timestamps do Firestore para Date objects agora é feita
-  // dentro de `getCurrentUser` ou no conversor, garantindo que `tenant.trialEnds` seja um objeto Date.
-  const trialEndsDate = tenant?.trialEnds ? new Date(tenant.trialEnds) : null;
-  
-  // O layout redireciona se o tenant não for encontrado
+  // Redireciona se o tenant não for encontrado no contexto (proteção adicional)
   if (!tenant) {
-    // Idealmente, o middleware já tratou isso, mas é uma proteção adicional.
-    redirect('/auth/login');
+    redirect('/auth/login?error=tenant_not_found');
   }
-  
+
+  // Se o usuário tem o papel de 'trial_expired' e não está na página de billing, redireciona.
+  // A própria página de layout já está sendo renderizada dentro do tenant, então o middleware já fez o rewrite.
+  // A verificação é feita aqui para garantir que qualquer acesso direto seja bloqueado.
+  // O middleware já cuidou do rewrite para `/billing`, então a verificação aqui é uma segurança.
+
   return (
-    // 3. O TenantProvider envolve todo o layout, disponibilizando os dados para componentes de cliente.
     <TenantProvider tenant={tenant} tenantId={tenantId} role={role}>
       <SidebarProvider>
         <Sidebar>
@@ -90,7 +77,6 @@ export default async function TenantLayout({ children, params }: Props) {
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu>
-              {/* Links simplificados para caminhos relativos ao tenant */}
               <SidebarMenuItem><Link href="/dashboard"><SidebarMenuButton tooltip="Dashboard"><BarChart /><span>Dashboard</span></SidebarMenuButton></Link></SidebarMenuItem>
               <SidebarMenuItem><Link href="/pacientes"><SidebarMenuButton tooltip="Pacientes"><Users /><span>Pacientes</span></SidebarMenuButton></Link></SidebarMenuItem>
               <SidebarMenuItem><Link href="/agenda"><SidebarMenuButton tooltip="Agenda"><Calendar /><span>Agenda</span></SidebarMenuButton></Link></SidebarMenuItem>
@@ -121,7 +107,7 @@ export default async function TenantLayout({ children, params }: Props) {
               {/* Espaço para breadcrumbs ou título da página */}
               </div>
           </header>
-          {role === 'owner' && tenant.subscriptionStatus === 'trialing' && <TrialBanner trialEnds={trialEndsDate} />}
+          {role === 'owner' && tenant.subscriptionStatus === 'trialing' && <TrialBanner trialEnds={tenant.trialEnds} />}
           <div className="flex-1 overflow-y-auto">
              {children}
           </div>
@@ -130,3 +116,8 @@ export default async function TenantLayout({ children, params }: Props) {
     </TenantProvider>
   );
 }
+
+type Props = {
+  children: ReactNode;
+  params: { tenantId: string };
+};

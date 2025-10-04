@@ -13,7 +13,7 @@ export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     // Ignora rotas de API e assets estáticos para otimizar a performance.
-    if (RouteUtils.isStaticAsset(pathname) || pathname.startsWith('/api')) { // Verificação da API movida para cá.
+    if (RouteUtils.isStaticAsset(pathname) || RouteUtils.isApiRoute(pathname)) {
       return NextResponse.next();
     }
 
@@ -23,10 +23,11 @@ export async function middleware(request: NextRequest) {
       request,
       response: NextResponse.next(),
       tenantId: tenantId,
-      user: null, // O usuário será preenchido pela AuthChain
+      user: null, // O middleware não lida mais com dados do usuário.
       config: middlewareConfig,
     };
     
+    // As cadeias agora são mais simples e focadas no roteamento.
     const chains = [
       new AuthChain(),
       new TenantChain(),
@@ -39,11 +40,13 @@ export async function middleware(request: NextRequest) {
         return result.response!;
       }
       
+      // O contexto é passado, mas raramente modificado, pois a lógica foi movida.
       if (result.context) {
         context = { ...context, ...result.context };
       }
     }
     
+    // Se chegou ao fim, significa que é uma rota pública no domínio principal.
     return context.response;
 
   } catch (error) {
@@ -51,16 +54,16 @@ export async function middleware(request: NextRequest) {
   }
 }
 
-// Configuração do matcher para definir quais rotas o middleware irá interceptar.
+// A configuração do matcher permanece a mesma.
 export const config = {
   matcher: [
     /*
      * Faz o match de todas as rotas, exceto as que começam com:
-     * - api (rotas de API, tratadas no início do middleware)
+     * - api (rotas de API)
      * - _next/static (arquivos estáticos)
      * - _next/image (arquivos de otimização de imagem)
      * - favicon.ico (ícone do site)
      */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };

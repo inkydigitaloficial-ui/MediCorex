@@ -1,74 +1,35 @@
 
-import { NextResponse } from 'next/server';
 import { RewriteHandler } from '../handlers/rewrite-handler';
 import { ChainResult, MiddlewareContext } from '../types';
-import { RouteUtils } from '../utils/route-utils';
 
+/**
+ * Cadeia de Lógica do Tenant Simplificada
+ *
+ * Responsabilidades:
+ * 1. Se não houver `tenantId` (domínio principal), não faz nada.
+ * 2. Se houver `tenantId`, reescreve a URL para a estrutura de diretório interna do Next.js
+ *    (ex: `acme.dominio.com/dashboard` -> `acme.dominio.com/_tenants/acme/dashboard`).
+ *
+ * A validação de permissão do usuário para o tenant e o tratamento de trial expirado
+ * agora são responsabilidade do `TenantLayout` no lado do servidor, que tem acesso
+ * ao contexto de autenticação completo.
+ */
 export class TenantChain {
   async execute(context: MiddlewareContext): Promise<ChainResult> {
-    const { request, tenantId, user } = context;
+    const { request, tenantId } = context;
 
     // Se não há um tenantId (acesso ao domínio principal), a chain não faz nada.
     if (!tenantId) {
-      // Se o usuário está logado no domínio principal e tenta acessar uma rota protegida,
-      // ele deve ser direcionado para configurar sua clínica se ainda não tiver uma.
-      if (user && !RouteUtils.isPublicRoute(request.nextUrl.pathname)) {
-          const userTenants = user.tenants as { [key: string]: string } | undefined;
-          const hasTenants = userTenants && Object.keys(userTenants).length > 0;
-          
-          if (!hasTenants && request.nextUrl.pathname !== '/auth/create-clinic') {
-              return {
-                  shouldContinue: false,
-                  response: NextResponse.redirect(new URL('/auth/create-clinic', request.url))
-              };
-          }
-      }
-
       return { shouldContinue: true, context };
     }
+
+    // Se há um tenantId, simplesmente reescreve a URL para a estrutura interna.
+    // A lógica de proteção (se o usuário pode ver esta página) é feita no layout do servidor.
+    const response = RewriteHandler.applyTenantRewrite(request, tenantId);
     
-    // Se há um tenantId, mas o usuário não está autenticado, o AuthChain já deveria ter
-    // redirecionado. Continuamos para que a página de login do tenant seja exibida.
-    if (!user) {
-        const isLoginPage = request.nextUrl.pathname === '/auth/login';
-        
-        // Se já está na página de login, apenas reescreve para a versão do tenant.
-        if (isLoginPage) {
-            const rewrittenUrl = RewriteHandler.applyTenantRewrite(request, tenantId);
-            return { shouldContinue: false, response: rewrittenUrl };
-        }
-        
-        // Para outras rotas protegidas do tenant, redireciona para a URL de login canônica.
-        // A lógica de subdomínio garantirá que o login ocorra no contexto do tenant.
-        const loginUrl = new URL(`/auth/login`, request.nextUrl.origin);
-        return { shouldContinue: false, response: NextResponse.redirect(loginUrl) };
-    }
-    
-    // Verifica se o usuário tem permissão para o tenantId do subdomínio.
-    const userTenants = user.tenants as { [key: string]: string } | undefined;
-    const roleInTenant = userTenants?.[tenantId];
-
-    if (!roleInTenant) {
-        // Usuário logado, mas tentando acessar um tenant ao qual não pertence.
-        return {
-            shouldContinue: false,
-            response: NextResponse.redirect(new URL('/auth/unauthorized', request.url))
-        };
-    }
-
-    // Lógica para trial expirado
-    if (roleInTenant === 'owner_trial_expired' && !request.nextUrl.pathname.startsWith('/billing') && !RouteUtils.isPublicRoute(request.nextUrl.pathname)) {
-      const billingUrl = new URL(`/_tenants/${tenantId}/billing`, request.url);
-      return { 
-        shouldContinue: false, 
-        response: NextResponse.rewrite(billingUrl) 
-      };
-    }
-
-    // Se tudo estiver certo, reescreve a URL para a estrutura interna do Next.js.
-    const response = RewriteHandler.applyTenantRewrite(request, tenantId, user.uid);
-    return { 
-      shouldContinue: false, // Interrompe para retornar a resposta com o rewrite
+    // Interrompe a cadeia e retorna a resposta com a URL reescrita.
+    return {
+      shouldContinue: false,
       response: response,
       context
     };

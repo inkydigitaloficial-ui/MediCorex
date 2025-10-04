@@ -1,60 +1,49 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { TokenUtils } from '../utils/token-utils';
 import { RouteUtils } from '../utils/route-utils';
 import { ChainResult, MiddlewareContext } from '../types';
 
-// Helper function to get the root domain, safe for the edge.
-function getRootDomain() {
-  return process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:9002';
-}
-
+/**
+ * Cadeia de Autenticação Simplificada
+ *
+ * Responsabilidades:
+ * 1. Permitir acesso a rotas públicas.
+ * 2. Se o usuário estiver tentando acessar uma rota protegida SEM um cookie de sessão,
+ *    redirecioná-lo para a página de login.
+ * 3. Se o usuário estiver logado e tentar acessar uma rota de autenticação (ex: /login),
+ *    redirecioná-lo para o dashboard do seu primeiro tenant.
+ *
+ * Esta cadeia NÃO valida mais o token. A validação é feita no Server Component (layout).
+ */
 export class AuthChain {
   async execute(context: MiddlewareContext): Promise<ChainResult> {
-    const { request, tenantId } = context;
+    const { request } = context;
     const pathname = request.nextUrl.pathname;
-    
-    // 1. Rotas públicas não precisam de verificação de token.
-    if (RouteUtils.isPublicRoute(pathname)) {
-      return { shouldContinue: true, context: { ...context, user: null } };
-    }
-    
-    const token = TokenUtils.extractToken(request);
-    
-    // 2. Lógica para rotas de autenticação (ex: /auth/login)
-    if (RouteUtils.isAuthRoute(pathname)) {
-      // Se o usuário já tem um token válido, ele não deveria estar na página de login.
-      // Redirecionamos para o dashboard.
-      if (token) {
-        const authResult = await TokenUtils.validateToken(token, request.headers);
-        if (authResult.isValid) {
-          const userTenants = authResult.user.tenants as { [key: string]: string } | undefined;
-          const firstTenant = userTenants ? Object.keys(userTenants)[0] : null;
+    const sessionCookie = request.cookies.get('__session')?.value;
 
-          if (firstTenant) {
-             const rootDomain = getRootDomain();
-             const redirectUrl = new URL('/dashboard', request.url);
-             redirectUrl.host = `${firstTenant}.${rootDomain}`;
-             return { 
-                shouldContinue: false, 
-                response: NextResponse.redirect(redirectUrl) 
-            };
-          } else {
-             const createClinicUrl = new URL('/auth/create-clinic', request.url);
-             return { 
-                shouldContinue: false, 
-                response: NextResponse.redirect(createClinicUrl) 
-            };
-          }
-        }
-      }
-      // Se não há token ou o token é inválido, permite o acesso à rota de autenticação.
+    // 1. Permitir acesso irrestrito a rotas públicas.
+    if (RouteUtils.isPublicRoute(pathname)) {
       return { shouldContinue: true, context };
     }
-    
-    // 3. Lógica para rotas protegidas
-    if (!token) {
-      // Se não há token, redireciona para o login.
+
+    // 2. Se for uma rota de autenticação (ex: /auth/login)
+    if (RouteUtils.isAuthRoute(pathname)) {
+      // Se o usuário já tem uma sessão, redireciona para a home,
+      // onde a lógica de redirect para o tenant/dashboard ocorrerá.
+      if (sessionCookie) {
+        return { 
+          shouldContinue: false, 
+          response: NextResponse.redirect(new URL('/', request.url)) 
+        };
+      }
+      // Se não tem sessão, permite o acesso à página de login/cadastro.
+      return { shouldContinue: true, context };
+    }
+
+    // 3. Para todas as outras rotas (protegidas)
+    if (!sessionCookie) {
+      // Se não há cookie de sessão, redireciona para o login.
+      // O subdomínio na URL garantirá que o login aconteça no contexto do tenant correto.
       const loginUrl = new URL('/auth/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return { 
@@ -62,30 +51,8 @@ export class AuthChain {
         response: NextResponse.redirect(loginUrl) 
       };
     }
-    
-    // Valida o token usando a API interna.
-    const authResult = await TokenUtils.validateToken(token, request.headers);
-    
-    if (!authResult.isValid) {
-        // Se o token expirou ou foi revogado, limpa o cookie e redireciona para o login.
-      if (authResult.error?.includes('expired') || authResult.error?.includes('revoked')) {
-        const response = NextResponse.redirect(new URL('/auth/login', request.url));
-        response.cookies.delete('__session');
-        return { shouldContinue: false, response };
-      }
-       // Se o usuário não tem acesso ao tenant específico, redireciona para não autorizado.
-      const unauthorizedUrl = new URL('/auth/unauthorized', request.url);
-      return { shouldContinue: false, response: NextResponse.redirect(unauthorizedUrl) };
-    }
 
-    // Validação de acesso ao tenant
-    if(tenantId && !(authResult.user.tenants && authResult.user.tenants[tenantId])) {
-        const unauthorizedUrl = new URL('/auth/unauthorized', request.url);
-        return { shouldContinue: false, response: NextResponse.redirect(unauthorizedUrl) };
-    }
-    
-    // Se a validação foi bem-sucedida, enriquece o contexto com os dados do usuário.
-    context.user = authResult.user;
+    // Se há um cookie de sessão, a cadeia continua. A validação ocorrerá no layout.
     return { shouldContinue: true, context };
   }
 }

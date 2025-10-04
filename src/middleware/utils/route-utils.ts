@@ -1,11 +1,16 @@
+
 import { middlewareConfig } from '../config';
 
 export class RouteUtils {
   /**
    * Verifica se o pathname corresponde a uma rota pública.
+   * Agora inclui caminhos relacionados a pagamento e legais.
    */
   static isPublicRoute(pathname: string): boolean {
-    return middlewareConfig.publicRoutes.some(route => pathname === route);
+    return middlewareConfig.publicRoutes.some(route => pathname === route) ||
+           pathname.startsWith('/politica-de-privacidade') ||
+           pathname.startsWith('/termos-de-servico') ||
+           pathname.startsWith('/payment');
   }
 
   /**
