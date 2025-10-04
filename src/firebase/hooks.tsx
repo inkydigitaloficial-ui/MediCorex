@@ -116,7 +116,7 @@ export function useDoc<T>(ref: DocumentReference<DocumentData> | null): DocState
         const unsubscribe = onSnapshot(ref, (snapshot) => {
             setData(snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as T) : null);
             setIsLoading(false);
-        }, () => {
+        }, (error) => {
             const permissionError = new FirestorePermissionError({
               path: ref.path,
               operation: 'get',
@@ -152,8 +152,8 @@ export function useCollection<T>(query: Query | null): CollectionState<T> {
             const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as T);
             setData(items);
             setIsLoading(false);
-        }, () => {
-            const path = (query as any)._query?.path?.segments.join('/') || 'unknown path';
+        }, (error) => {
+            const path = (query as any)._query?.path?.segments.join('/') || 'caminho desconhecido';
             const permissionError = new FirestorePermissionError({
                 path: path,
                 operation: 'list',
