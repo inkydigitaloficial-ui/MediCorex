@@ -47,6 +47,7 @@ export default function PacientesPage({ params }: { params: { tenantId: string }
 
   const pacientesQuery = useMemoFirebase(() => {
     if (!firestore || !tenantId) return null;
+    // Ordena pela data de criação, dos mais novos para os mais antigos
     return query(
       collection(firestore, `tenants/${tenantId}/pacientes`).withConverter(baseConverter<Paciente>()), 
       orderBy('createdAt', 'desc')

@@ -1,6 +1,6 @@
 'use client';
 
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/hooks';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useForm } from 'react-hook-form';
@@ -41,9 +41,13 @@ export function AddPacienteDialog({ tenantId, onOpenChange, open }: AddPacienteD
   const onSubmit = (data: PacienteFormData) => {
     if (!firestore || !tenantId) return;
 
-    const pacientesCollectionRef = collection(firestore, `tenants/${tenantId}/pacientes`).withConverter(baseConverter<Omit<Paciente, 'id'>>());
+    const pacientesCollectionRef = collection(firestore, `tenants/${tenantId}/pacientes`);
     
-    addDoc(pacientesCollectionRef, data)
+    // O baseConverter não é mais necessário aqui, pois vamos lidar com o timestamp diretamente
+    addDoc(pacientesCollectionRef, {
+      ...data,
+      createdAt: serverTimestamp() // Adiciona o timestamp na criação
+    })
     .then(() => {
         toast({
             title: 'Paciente adicionado!',
@@ -52,7 +56,15 @@ export function AddPacienteDialog({ tenantId, onOpenChange, open }: AddPacienteD
         form.reset();
         onOpenChange(false);
     })
-    .catch(() => {
+    .catch((error) => {
+      // User-facing error
+      toast({
+        variant: 'destructive',
+        title: 'Falha ao adicionar paciente',
+        description: 'Você não tem permissão para executar esta ação.',
+      });
+
+      // Developer-facing error for debugging
       const permissionError = new FirestorePermissionError({
         path: pacientesCollectionRef.path,
         operation: 'create',
@@ -73,8 +85,8 @@ export function AddPacienteDialog({ tenantId, onOpenChange, open }: AddPacienteD
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField name="nome" control={form.control} render={({ field }) => <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
             <FormField name="email" control={form.control} render={({ field }) => <FormItem><FormLabel>Email</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-            <FormField name="cpf" control={form.control} render={({ field }) => <FormItem><FormLabel>CPF</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-            <FormField name="telefone" control={form.control} render={({ field }) => <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+            <FormField name="cpf" control={form.control} render={({ field }) => <FormItem><FormLabel>CPF (Opcional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+            <FormField name="telefone" control={form.control} render={({ field }) => <FormItem><FormLabel>Telefone (Opcional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
             <Button type="submit" disabled={form.formState.isSubmitting} className='w-full'>
               {form.formState.isSubmitting ? 'Salvando...' : 'Salvar Paciente'}
             </Button>
