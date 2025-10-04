@@ -9,12 +9,9 @@ const STATIC_PATHS = ['/api', '/_next/static', '/_next/image', '/favicon.ico'];
  *
  * Responsabilidades:
  * 1. Extrair o `tenantId` (subdomínio) do host da requisição.
- * 2. Se um `tenantId` for encontrado, reescrever a URL para a estrutura interna de diretório do Next.js
- *    (ex: `acme.dominio.com/dashboard` se torna `/tenants/acme/dashboard`).
+ * 2. Se um `tenantId` for encontrado, reescrever a URL para a estrutura de grupo de rotas interna
+ *    (ex: `acme.dominio.com/dashboard` se torna `/(tenants)/acme/dashboard`).
  * 3. Ignorar assets estáticos e rotas de API para otimizar a performance.
- *
- * Toda a lógica de autenticação é delegada para os Server Components (layouts/páginas)
- * para evitar erros de 'Invalid URL' no Edge Runtime.
  */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -32,14 +29,18 @@ export async function middleware(request: NextRequest) {
   }
 
   // Extrai o subdomínio (tenantId).
-  // Esta lógica funciona para `acme.localhost:3000` e `acme.meusite.com`.
-  // O slice(0, -2) remove os dois últimos segmentos do domínio (ex: 'medicorex' e 'app').
-  const tenantId = host.split('.').slice(0, -2).join('.');
+  // Esta lógica é mais robusta para lidar com localhost e domínios de produção.
+  // Ex: 'acme.localhost:9002' -> ['acme']
+  // Ex: 'app.medicorex.app' -> ['app']
+  const parts = host.split('.');
+  const isLocalhost = host.includes('localhost');
+  const tenantId = (isLocalhost && parts.length > 1) || (!isLocalhost && parts.length > 2) ? parts[0] : null;
 
-  // Se um tenantId foi encontrado e não é o domínio principal (www), reescreve a URL.
+
+  // Se um tenantId foi encontrado e não é 'www', reescreve a URL.
   if (tenantId && tenantId !== 'www') {
-    const newPath = `/_tenants/${tenantId}${pathname}`;
-    // Usamos new URL(newPath, request.url) que é a forma mais segura de construir a URL de reescrita.
+    // Reescreve para o grupo de rotas `(tenants)`. Pastas com `_` são ignoradas pelo roteador.
+    const newPath = `/(tenants)/${tenantId}${pathname}`;
     const newUrl = new URL(newPath, request.url);
     return NextResponse.rewrite(newUrl);
   }
