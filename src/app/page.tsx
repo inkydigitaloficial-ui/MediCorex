@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -9,6 +8,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Logo } from "@/components/logo";
+import { Footer } from '@/components/footer';
 
 function DemoLink() {
   const [demoUrl, setDemoUrl] = useState('');
@@ -16,7 +16,7 @@ function DemoLink() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const protocol = window.location.protocol;
-      const host = window.location.host;
+      const host = window.location.host.replace(/^www\./, '');
       const newUrl = `${protocol}//acme.${host}`;
       setDemoUrl(newUrl);
     }
@@ -255,9 +255,7 @@ export default function Home() {
         </section>
 
       </main>
-      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-muted-foreground">&copy; 2024 MediCorex. Todos os direitos reservados.</p>
-      </footer>
+      <Footer />
     </div>
   );
 }
