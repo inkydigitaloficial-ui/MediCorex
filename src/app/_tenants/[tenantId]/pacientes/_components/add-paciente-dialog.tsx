@@ -1,4 +1,3 @@
-
 'use client';
 
 import { collection, addDoc } from 'firebase/firestore';
@@ -52,7 +51,6 @@ export function AddPacienteDialog({ tenantId, onOpenChange, open }: AddPacienteD
         });
         form.reset();
         onOpenChange(false);
-        // O onPatientAdded não é mais necessário aqui, o useCollection cuida da atualização.
     })
     .catch(() => {
       const permissionError = new FirestorePermissionError({

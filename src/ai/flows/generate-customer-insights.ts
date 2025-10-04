@@ -1,120 +1,86 @@
+'use client';
 
-'use server';
+import { collection, addDoc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase/hooks';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { baseConverter } from '@/lib/firestore/converters';
+import { Paciente } from '@/types/paciente';
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
-import { adminFirestore } from '@/lib/firebase/admin'; 
-
-const TenantFlowInput = z.object({
-  tenantId: z.string().min(1, "tenantId é obrigatório"),
+const pacienteSchema = z.object({
+  nome: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres.' }),
+  email: z.string().email({ message: 'Por favor, insira um email válido.' }),
+  cpf: z.string().optional(),
+  telefone: z.string().optional(),
 });
 
-const GenerateCustomerInsightsInputSchema = TenantFlowInput.extend({
-  query: z.string().describe('The query to generate customer insights for.'),
-  customerId: z.string().min(1, "customerId é obrigatório"),
-  analysisType: z.enum(['comportamento', 'financeiro', 'geral']).default('geral'),
-});
-export type GenerateCustomerInsightsInput = z.infer<typeof GenerateCustomerInsightsInputSchema>;
+type PacienteFormData = z.infer<typeof pacienteSchema>;
 
-const GenerateCustomerInsightsOutputSchema = z.object({
-  insights: z.array(z.string()),
-  recommendations: z.array(z.string()),
-  generatedAt: z.string(),
-  metadata: z.object({
-    customerName: z.string().optional(),
-    analysisDuration: z.number(),
-    generationId: z.string(),
-  }),
-});
-export type GenerateCustomerInsightsOutput = z.infer<typeof GenerateCustomerInsightsOutputSchema>;
+interface AddPacienteDialogProps {
+    tenantId: string;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+}
 
-export const generateCustomerInsightsFlow = ai.defineFlow(
-  {
-    name: 'generateCustomerInsightsFlow',
-    inputSchema: GenerateCustomerInsightsInputSchema,
-    outputSchema: GenerateCustomerInsightsOutputSchema,
-  },
-  async (input) => {
-    const { tenantId, customerId, analysisType, query } = input;
-    const startTime = Date.now();
+export function AddPacienteDialog({ tenantId, onOpenChange, open }: AddPacienteDialogProps) {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const form = useForm<PacienteFormData>({
+    resolver: zodResolver(pacienteSchema),
+    defaultValues: { nome: '', email: '', cpf: '', telefone: '' },
+  });
 
-    try {
-      const [tenantDoc, customerDoc] = await Promise.all([
-        adminFirestore.collection('tenants').doc(tenantId).get(),
-        adminFirestore.collection('tenants').doc(tenantId)
-          .collection('pacientes').doc(customerId).get()
-      ]);
+  const onSubmit = (data: PacienteFormData) => {
+    if (!firestore || !tenantId) return;
 
-      if (!tenantDoc.exists) {
-        throw new Error(`Tenant ${tenantId} não encontrado`);
-      }
-
-      if (!customerDoc.exists) {
-        throw new Error(`Paciente ${customerId} não encontrado no tenant ${tenantId}`);
-      }
-
-      const customerData = customerDoc.data();
-      const tenantData = tenantDoc.data();
-      
-      const prompt = `
-        ANALISE DE PACIENTE PARA A CLÍNICA: ${tenantData.name}
-        
-        Sua tarefa é gerar insights sobre um paciente.
-        
-        Dados do Paciente:
-        ${JSON.stringify(customerData, null, 2)}
-        
-        Tipo de Análise Solicitada: ${analysisType}
-        Consulta Específica: "${query}"
-        
-        Instruções:
-        1. Gere uma lista de 3 a 5 insights acionáveis em português.
-        2. Para cada insight, forneça uma recomendação clara.
-        3. Retorne um JSON com as chaves "insights" e "recommendations".
-      `;
-
-      const llmResponse = await ai.generate({
-        prompt: prompt,
-        model: 'googleai/gemini-pro',
-        config: { temperature: 0.7 },
-        output: {
-          format: 'json',
-          schema: z.object({ insights: z.array(z.string()), recommendations: z.array(z.string()) })
-        }
-      });
-
-      const aiResponse = llmResponse.output;
-      if (!aiResponse) {
-        throw new Error('A IA não retornou uma resposta válida.');
-      }
-
-      const endTime = Date.now();
-      const analysisDuration = endTime - startTime;
-
-      const generationRef = await adminFirestore.collection('tenants').doc(tenantId)
-        .collection('ai_generations').add({
-          type: 'customer_insights',
-          customerId: customerId,
-          input: { query, analysisType },
-          output: aiResponse,
-          createdAt: new Date(),
-          createdBy: 'system'
+    const pacientesCollectionRef = collection(firestore, `tenants/${tenantId}/pacientes`).withConverter(baseConverter<Omit<Paciente, 'id'>>());
+    
+    addDoc(pacientesCollectionRef, data)
+    .then(() => {
+        toast({
+            title: 'Paciente adicionado!',
+            description: `${data.nome} foi adicionado à sua lista de pacientes.`,
         });
+        form.reset();
+        onOpenChange(false);
+    })
+    .catch(() => {
+      const permissionError = new FirestorePermissionError({
+        path: pacientesCollectionRef.path,
+        operation: 'create',
+        requestResourceData: data,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
+  };
 
-      return {
-        insights: aiResponse.insights || [],
-        recommendations: aiResponse.recommendations || [],
-        generatedAt: new Date().toISOString(),
-        metadata: {
-          customerName: customerData?.name,
-          analysisDuration,
-          generationId: generationRef.id
-        }
-      };
-
-    } catch (error: any) {
-      console.error('Erro no flow generateCustomerInsights:', error);
-      throw new Error(`Falha ao gerar insights: ${error.message || 'Erro desconhecido'}`);
-    }
-  }
-);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Adicionar Novo Paciente</DialogTitle>
+          <DialogDescription>Preencha as informações para cadastrar um novo paciente.</DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField name="nome" control={form.control} render={({ field }) => <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+            <FormField name="email" control={form.control} render={({ field }) => <FormItem><FormLabel>Email</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+            <FormField name="cpf" control={form.control} render={({ field }) => <FormItem><FormLabel>CPF</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+            <FormField name="telefone" control={form.control} render={({ field }) => <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
+            <Button type="submit" disabled={form.formState.isSubmitting} className='w-full'>
+              {form.formState.isSubmitting ? 'Salvando...' : 'Salvar Paciente'}
+            </Button>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
