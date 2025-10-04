@@ -1,61 +1,112 @@
+# Documentação Técnica Exaustiva do Projeto MedicoRex
 
-# Visão Geral do Projeto
+**Versão:** 1.0
+**Autor:** Assistente de IA Gemini
+**Data:** 23 de Maio de 2024
 
-Este documento fornece uma visão geral da arquitetura e estrutura do projeto, com foco especial no sistema de middleware e no fluxo de autenticação multi-tenant.
+## Seção 1: Visão Geral e Estratégia Arquitetural
 
-## Estrutura de Arquivos e Pastas (Atualizada)
+### 1.1. Propósito e Modelo de Negócio
 
-A seguir, a árvore de diretórios simplificada, refletindo a arquitetura final:
+O MedicoRex é uma plataforma de software como serviço (SaaS) multi-tenant, concebida para revolucionar a gestão de clínicas médicas e consultórios. O modelo de negócio assenta na oferta de uma aplicação web robusta, onde cada cliente (uma clínica ou profissional de saúde, referido como "tenant") obtém um ambiente de trabalho exclusivo e isolado, acessível através de um subdomínio personalizado (ex: `clinicadojoao.medicorex.app`).
+
+Este modelo elimina a necessidade de infraestrutura local para os clientes, oferecendo uma solução centralizada, atualizável e escalável que abrange:
+
+- **Gestão Integral de Pacientes**: Desde o cadastro inicial, passando por um prontuário eletrônico detalhado com histórico de consultas, até funcionalidades avançadas como a geração de resumos com IA.
+- **Otimização da Agenda**: Um sistema de agendamento de consultas intuitivo que minimiza conflitos e otimiza o tempo dos profissionais.
+- **Controle Financeiro**: Gestão de assinaturas, pagamentos recorrentes e faturamento, integrada com a plataforma Stripe para processamento seguro.
+- **Inteligência de Negócio**: Dashboards analíticos que fornecem insights sobre o desempenho da clínica, como número de atendimentos, faturamento e captação de novos pacientes.
+
+### 1.2. Pilares da Arquitetura
+
+A arquitetura foi desenhada sobre três pilares fundamentais:
+
+1.  **Multi-Tenancy por Subdomínio com Base de Dados Isolada**: A estratégia de usar subdomínios para separar os tenants é o coração do sistema. Cada subdomínio mapeia para um `tenantId` único que é usado como chave de partição nos dados do Firestore. Isso garante que os dados de uma clínica são logicamente inacessíveis por outra, proporcionando segurança e privacidade.
+2.  **Jamstack com Next.js e Firebase**: A escolha do Next.js (App Router) permite uma experiência de usuário rica e performática através de Server-Side Rendering (SSR) e Server Components. O Firebase fornece um ecossistema de backend completo e escalável, incluindo:
+    - **Firestore**: Como banco de dados NoSQL para armazenar todos os dados da aplicação.
+    - **Firebase Authentication**: Para gestão de usuários (login, signup, sessões).
+    - **Firebase Hosting**: Para deploy do frontend Next.js.
+    - **Cloud Functions**: Para lógica de backend e webhooks (ex: Stripe).
+3.  **Middleware como Orquestrador de Roteamento**: O middleware do Next.js é a peça crítica que torna a multi-tenancy transparente. Ele intercepta todas as requisições, analisa o host para identificar o tenant e reescreve a URL internamente, direcionando o usuário para a instância correta da aplicação sem que ele perceba.
+
+---
+
+## Seção 2: Estrutura Detalhada de Pastas e Arquivos
+
+A seguir, uma análise forense da organização do código-fonte. Cada arquivo e pasta foi posicionado para maximizar a coesão e minimizar o acoplamento.
 
 ```
 .
+├── .idx/                       # Arquivos de configuração do ambiente de desenvolvimento IDX.
+│   ├── dev.nix
+│   └── icon.png
+├── docs/                       # Documentação do projeto.
+│   ├── backend.json
+│   └── blueprint.md
+├── functions/                  # Código das Cloud Functions do Firebase.
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── src/
+│       └── index.ts            # Ponto de entrada das funções (ex: webhooks do Stripe).
+├── public/                     # Arquivos estáticos (imagens, fontes, favicons).
 ├── src/
-│   ├── app/
-│   │   ├── (public)/              // Rotas públicas como landing page, preços, etc.
-│   │   ├── (tenants)/
-│   │   │   └── [tenantId]/         // Grupo de rotas para o tenant (ex: /dashboard)
-│   │   │       ├── dashboard/
-│   │   │       └── ... (outras rotas do tenant)
-│   │   ├── api/
-│   │   │   └── auth/
-│   │   │       └── ... (rotas de API para logout, etc.)
-│   │   ├── auth/                    // Rotas de autenticação (login, signup)
-│   │   └── ...
-│   ├── components/
-│   ├── firebase/
-│   ├── hooks/
-│   ├── lib/
-│   ├── middleware.ts             // <-- PONTO DE ENTRADA ÚNICO DO MIDDLEWARE
-│   ├── types/
-│   └── utils/
-│       └── session.ts            // <-- Lógica de sessão no servidor
-├── firebase.json
-├── firestore.rules
-└── package.json
+│   ├── ai/                     # Módulos de Inteligência Artificial com Genkit.
+│   │   ├── dev.ts
+│   │   ├── genkit.ts
+│   │   └── flows/pacientes/gerarResumoPaciente.ts # Fluxo para gerar resumos de pacientes.
+│   ├── app/                    # Coração da aplicação Next.js (App Router).
+│   │   ├── (tenants)/          # GRUPO DE ROTAS PRINCIPAL para a aplicação do tenant.
+│   │   │   └── [tenantId]/     # Parâmetro dinâmico que recebe o ID do tenant do middleware.
+│   │   │       ├── agenda/     # Página de agendamentos.
+│   │   │       ├── pacientes/  # Página de gestão de pacientes.
+│   │   │       ├── layout.tsx  # Layout específico do tenant, aplica autenticação e provê contexto.
+│   │   │       └── page.tsx    # Página inicial do dashboard do tenant.
+│   │   ├── _tenants/           # ATENÇÃO: Pasta duplicada/obsoleta. Ignorada pelo roteador do Next.js.
+│   │   ├── api/                # Rotas de API do Next.js.
+│   │   │   └── auth/           # Endpoints para login, logout, etc.
+│   │   ├── auth/               # Páginas públicas de autenticação (login, signup, etc.).
+│   │   ├── layout.tsx          # Layout global da aplicação.
+│   │   └── page.tsx            # Página inicial pública (landing page).
+│   ├── components/             # Componentes React reutilizáveis.
+│   │   ├── ui/                 # Componentes de UI primitivos (ex: Button, Card), gerados pelo Shadcn.
+│   │   ├── billing/            # Componentes relacionados a faturamento.
+│   │   └── providers/          # Provedores de contexto React (ex: TenantProvider).
+│   ├── firebase/               # Configurações e utilitários específicos do Firebase.
+│   │   ├── error-emitter.ts
+│   │   └── errors.ts
+│   ├── hooks/                  # Hooks React customizados (ex: use-toast).
+│   ├── lib/                    # Funções utilitárias e inicialização de bibliotecas.
+│   │   ├── firebase/           # Configuração dos SDKs do Firebase (client e admin).
+│   │   └── firestore/          # Conversores de dados do Firestore.
+│   ├── middleware/             # Lógica de middleware (análise detalhada na Seção 3).
+│   │   ├── chains/             # (OBSOLETO) Implementação antiga em cadeia.
+│   │   ├── handlers/           # Manipuladores de erro.
+│   │   ├── utils/              # Utilitários de middleware.
+│   │   ├── config.ts
+│   │   └── types.ts
+│   ├── types/                  # Definições de tipos TypeScript para a aplicação.
+│   ├── utils/                  # Utilitários gerais.
+│   │   └── session.ts        # Funções para gestão de sessão do usuário.
+│   ├── description.md        # Este arquivo de documentação.
+│   └── middleware.ts         # PONTO DE ENTRADA DO MIDDLEWARE.
+├── README.md                   # README geral do projeto.
+├── apphosting.yaml             # Configuração de deploy para o Google App Hosting.
+├── firebase.json               # Configuração do projeto Firebase (regras do Firestore, Hosting).
+├── next.config.ts              # Arquivo de configuração do Next.js.
+└── package.json                # Dependências e scripts do projeto.
 ```
 
-## Arquitetura de Middleware e Autenticação (Versão Final)
+---
 
-O sistema de middleware foi drasticamente simplificado para aumentar a robustez e eliminar erros complexos. O padrão "Chain of Responsibility" foi substituído por uma arquitetura mais enxuta e alinhada com as melhores práticas do Next.js App Router.
+## Seção 3: Dissecação Completa do Sistema de Middleware
 
-**A responsabilidade agora é dividida entre o Middleware e os Server Components (Layouts).**
+O middleware é o componente mais crítico para o sucesso da arquitetura multi-tenant. A seguir, o código-fonte integral de todos os 8 arquivos relevantes, com explicações detalhadas.
 
-### 1. Middleware (`src/middleware.ts`)
+### 3.1. `src/middleware.ts` (O Orquestrador)
 
-O middleware agora tem uma **única e exclusiva responsabilidade**: reescrever a URL com base no subdomínio. Ele não lida mais com autenticação, cookies ou redirecionamentos.
+**Propósito:** Este é o único middleware que o Next.js executa, conforme definido pelo `matcher`. Sua função é identificar o tenant a partir do subdomínio e reescrever a URL para uma rota interna que o App Router entende, sem alterar a URL visível para o usuário.
 
-**Funcionamento:**
-
-1.  A requisição chega (ex: `acme.dominio.com/dashboard`).
-2.  O middleware ignora rotas de API e arquivos estáticos (`/api`, `/_next`, etc.).
-3.  Ele extrai o `tenantId` (`acme`) do subdomínio do host.
-4.  Se um `tenantId` é encontrado, ele **reescreve silenciosamente** a URL para o grupo de rotas interno: `/(tenants)/acme/dashboard`.
-5.  O Next.js então processa a requisição como se ela fosse para a pasta `src/app/(tenants)/[tenantId]/dashboard/page.tsx`.
-
-Isso isola a lógica de roteamento multi-tenant em um único ponto, de forma eficiente e sem efeitos colaterais.
-
-**Código Completo do `middleware.ts`:**
-
+**Código-Fonte:**
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -74,80 +125,275 @@ const STATIC_PATHS = ['/api', '/_next/static', '/_next/image', '/favicon.ico'];
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Ignora assets estáticos e rotas de API.
+  // Etapa 1: Otimização. Ignora requisições para assets estáticos e rotas de API.
   if (STATIC_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
 
-  // Extrai o host da requisição.
+  // Etapa 2: Extração do host. Essencial para determinar o subdomínio.
   const host = request.headers.get('host');
   if (!host) {
-    // Se não houver host, não há como determinar o subdomínio.
+    // Sem host, é impossível determinar o tenant. Continua para a página principal.
     return NextResponse.next();
   }
 
-  // Extrai o subdomínio (tenantId).
-  // Esta lógica é mais robusta para lidar com localhost e domínios de produção.
-  // Ex: 'acme.localhost:9002' -> ['acme']
-  // Ex: 'app.medicorex.app' -> ['app']
+  // Etapa 3: A Lógica Crítica de Extração do Tenant ID. (Ver Seção 4 para detalhes do problema).
   const parts = host.split('.');
   const isLocalhost = host.includes('localhost');
   const tenantId = (isLocalhost && parts.length > 1) || (!isLocalhost && parts.length > 2) ? parts[0] : null;
 
-
-  // Se um tenantId foi encontrado e não é 'www', reescreve a URL.
+  // Etapa 4: Reescrevendo a URL para o Grupo de Rotas do Tenant.
   if (tenantId && tenantId !== 'www') {
-    // Reescreve para o grupo de rotas `(tenants)`. Pastas com `()` são ignoradas pelo roteador.
+    // A URL é reescrita para `/(tenants)/[tenantId]/...`
+    // O grupo de rotas `(tenants)` organiza os arquivos, mas não aparece na URL final.
     const newPath = `/(tenants)/${tenantId}${pathname}`;
     const newUrl = new URL(newPath, request.url);
     return NextResponse.rewrite(newUrl);
   }
 
-  // Para o domínio principal ou se não houver subdomínio, continua a requisição.
+  // Etapa 5: Se nenhum tenant foi identificado, a requisição segue para as páginas públicas.
   return NextResponse.next();
 }
 
-// Configuração do matcher para aplicar o middleware em todas as rotas relevantes.
+// Configuração do matcher para aplicar o middleware em todas as rotas, exceto as excluídas acima.
 export const config = {
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };
 ```
 
-### 2. Proteção de Rota no Layout do Servidor (`src/app/(tenants)/[tenantId]/layout.tsx`)
+### 3.2. `src/middleware/config.ts`
 
-A responsabilidade de **proteger as rotas** foi movida para o layout do servidor que envolve todas as páginas do tenant.
+**Propósito:** Centralizar as constantes e configurações usadas pela lógica de middleware. Isso evita "números mágicos" e strings espalhadas pelo código.
 
-**Funcionamento:**
+**Código-Fonte:**
+```typescript
+// src/middleware/config.ts
+export const middlewareConfig = {
+  // Domínio raiz da aplicação em produção. Usado para diferenciar subdomínios de partes do domínio principal.
+  rootDomain: process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'medicorex.app',
+  
+  // Lista de rotas que são acessíveis publicamente, mesmo dentro de um tenant.
+  publicRoutes: [
+    '/',
+    '/auth/login',
+    '/auth/signup',
+    '/auth/create-clinic',
+    '/auth/unauthorized',
+    '/escolha-seu-plano',
+    '/payment/success'
+  ],
 
-1.  O layout é um Server Component, então ele pode executar código seguro no servidor a cada requisição.
-2.  Ele chama a função `getCurrentUser(params.tenantId)` (de `src/utils/session.ts`), que verifica o cookie de sessão `__session` e valida o token do usuário.
-3.  **Se `getCurrentUser` retorna `null`** (usuário não logado ou sessão inválida), o layout usa a função `redirect` do Next.js para enviar o usuário para a página de login (`redirect('/auth/login')`). Como a requisição já está no contexto do subdomínio (ex: `acme.dominio.com`), o redirecionamento relativo funciona corretamente, levando-o para `acme.dominio.com/auth/login`.
-4.  **Se o usuário está autenticado**, o layout renderiza os `children` (a página solicitada, como o dashboard), envolvendo-os no `TenantProvider` com os dados do usuário e do tenant.
+  // Rotas que fazem parte do fluxo de autenticação.
+  authRoutes: [
+    '/auth/login',
+    '/auth/signup',
+    '/auth/create-clinic',
+    '/auth/logout'
+  ],
 
-Esta abordagem é a recomendada pelo Next.js App Router, pois é segura, eficiente e evita a complexidade no Edge Runtime do middleware.
+  // Prefixo para rotas de API, para que o middleware possa ignorá-las.
+  apiPrefix: '/api',
+};
+```
+
+### 3.3. `src/middleware/types.ts`
+
+**Propósito:** Definir as estruturas de dados (interfaces TypeScript) usadas na antiga implementação em cadeia do middleware. Embora obsoleto, é importante para entender o design anterior.
+
+**Código-Fonte:**
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+
+/**
+ * (OBSOLETO) Representa o contexto que fluía entre as cadeias do middleware.
+ */
+export interface MiddlewareContext {
+  request: NextRequest;
+  response: NextResponse;
+  tenantId: string | null;
+  user: any | null; // Dados do usuário decodificados do token
+  config: typeof import('./config').middlewareConfig;
+}
+
+/**
+ * (OBSOLETO) Representa o resultado da execução de uma cadeia do middleware.
+ */
+export interface ChainResult {
+  shouldContinue: boolean; // Se a próxima cadeia deve ser executada
+  response?: NextResponse;    // A resposta a ser retornada (se shouldContinue for false)
+  context?: Partial<MiddlewareContext>; // Atualizações para o contexto
+}
+
+/**
+ * (OBSOLETO) Representa o resultado da validação de um token.
+ */
+export interface AuthResult {
+  isValid: boolean;
+  user?: any;
+  error?: string;
+}
+```
+
+### 3.4. `src/middleware/handlers/error-handler.ts`
+
+**Propósito:** Fornecer um manipulador de erros padronizado para ser usado dentro da lógica de middleware. Na prática, com a simplificação, seu uso foi reduzido.
+
+**Código-Fonte:**
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+
+export class ErrorHandler {
+  static handle(error: any, request: NextRequest): NextResponse {
+    console.error('[Middleware Error]', {
+      pathname: request.nextUrl.pathname,
+      error: error.message,
+      stack: error.stack,
+    });
+    
+    // Se for um erro de autenticação do Firebase, limpa o cookie e força o login.
+    if (error?.code?.startsWith('auth/')) {
+      const response = NextResponse.redirect(new URL('/auth/login', request.url));
+      response.cookies.delete('firebaseIdToken');
+      return response;
+    }
+    
+    // Para todos os outros erros, redireciona para uma página de erro genérica.
+    const errorUrl = new URL('/error', request.url);
+    errorUrl.searchParams.set('message', 'Ocorreu um erro inesperado durante o processamento da sua requisição.');
+    
+    return NextResponse.redirect(errorUrl);
+  }
+}
+```
+
+### 3.5. `src/middleware/utils/cache-utils.ts`
+
+**Propósito:** Implementar um cache em memória simples para armazenar tokens decodificados. **AVISO:** Esta implementação é perigosa em produção, pois o cache não é compartilhado entre instâncias serverless.
+
+**Código-Fonte:**
+```typescript
+/**
+ * (ALERTA DE PRODUÇÃO) Simulação de um cache em memória para tokens.
+ * Não utilize em produção com múltiplas instâncias. Use Redis ou Memcached.
+ */
+interface CacheEntry {
+  decodedToken: any;
+  expires: number;
+}
+
+const tokenCache = new Map<string, CacheEntry>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+const MAX_CACHE_SIZE = 500;
+
+export class CacheUtils {
+  static get(token: string): any | null {
+    const entry = tokenCache.get(token);
+    if (entry && entry.expires > Date.now()) {
+      return entry.decodedToken;
+    }
+    if (entry) {
+      tokenCache.delete(token);
+    }
+    return null;
+  }
+
+  static set(token: string, decodedToken: any): void {
+    if (tokenCache.size >= MAX_CACHE_SIZE) {
+      const oldestKey = tokenCache.keys().next().value;
+      tokenCache.delete(oldestKey);
+    }
+    const expires = Date.now() + CACHE_TTL;
+    tokenCache.set(token, { decodedToken, expires });
+  }
+}
+```
+
+### 3.6 a 3.8. Arquivos Obsoletos (`chains` e `token-utils`)
+
+**Propósito:** Estes arquivos representam uma abordagem de design anterior, provavelmente mais complexa, que foi sabiamente refatorada para a solução mais simples e performática em `src/middleware.ts`.
+
+**Código-Fonte (`src/middleware/chains/auth-chain.ts`):**
+```typescript
+// ARQUIVO OBSOLETO. PODE E DEVE SER REMOVIDO.
+// A lógica de autenticação foi movida para o `(tenants)/[tenantId]/layout.tsx`,
+// onde é tratada de forma mais eficiente por Server Components.
+export {};
+```
+
+**Código-Fonte (`src/middleware/chains/tenant-chain.ts`):**
+```typescript
+// ARQUIVO OBSOLETO. PODE E DEVE SER REMOVIDO.
+// A lógica de reescrita de URL do tenant foi centralizada diretamente em `src/middleware.ts`.
+export {};
+```
+
+**Código-Fonte (`src/middleware/utils/token-utils.ts`):**
+```typescript
+// ARQUIVO OBSOLETO. PODE E DEVE SER REMOVIDO.
+// A validação de token agora é feita pela função `getUserSession` em `src/utils/session.ts`,
+// que usa o Firebase Admin SDK no lado do servidor.
+export class TokenUtils {
+  // A lógica foi movida e melhorada.
+}
+```
 
 ---
 
-## Histórico de Erros e Soluções
+## Seção 4: Análise Forense dos Desafios de Roteamento
 
-Durante o desenvolvimento, enfrentamos uma série de erros complexos relacionados à autenticação em subdomínios, principalmente no ambiente de desenvolvimento dinâmico.
+### 4.1. O Epicentro do Problema: `localhost` vs. Domínio Real
 
-### Erro: `TypeError: Invalid URL`
+A maior dor de cabeça em qualquer aplicação multi-tenant baseada em subdomínio é fazer o roteamento funcionar de forma idêntica no ambiente de desenvolvimento local e no ambiente de produção. O `host` da requisição, que é a fonte da verdade para identificar o tenant, comporta-se de maneira diferente.
 
-Este foi o erro mais persistente e desafiador.
+-   **Cenário de Produção:**
+    -   URL: `minhaclinica.medicorex.app`
+    -   `host`: `minhaclinica.medicorex.app`
+    -   `host.split('.')`: `['minhaclinica', 'medicorex', 'app']` (3+ partes)
+    -   `tenantId` esperado: `'minhaclinica'`
 
--   **Causa Raiz:** O erro ocorria no middleware (Edge Runtime) ao tentar construir uma URL de redirecionamento com `new URL()`. O ambiente de desenvolvimento em nuvem (Cloud Workstation) usa nomes de host longos e complexos. Ao tentar construir uma URL (ex: `new URL('/auth/login', request.url)`), o `request.url` fornecido pelo Next.js no Edge Runtime era, por vezes, uma URL interna ou malformada que o construtor `new URL()` não conseguia interpretar, resultando no `TypeError`.
--   **Tentativas de Correção Falhas:**
-    1.  Tentar construir a URL "manualmente" a partir de `request.nextUrl.protocol` e `request.headers.get('host')`. Falhou porque o `host` também podia ser inconsistente.
-    2.  Tentar clonar a URL com `request.nextUrl.clone()` e modificar o `pathname`. Falhou pela mesma razão de inconsistência da URL base no ambiente dinâmico.
--   **Solução Definitiva:** Eliminar **qualquer** construção de URL para redirecionamento dentro do middleware. A responsabilidade do redirecionamento foi movida para o `TenantLayout` (Server Component), que usa `redirect('/auth/login')` do Next.js. O Server Component tem um contexto mais estável e o `redirect` relativo funciona de forma confiável, pois o navegador já está no subdomínio correto.
+-   **Cenário de Desenvolvimento Local:**
+    -   URL: `minhaclinica.localhost:3000`
+    -   `host`: `minhaclinica.localhost:3000`
+    -   `host.split('.')`: `['minhaclinica', 'localhost:3000']` (2 partes)
+    -   `tenantId` esperado: `'minhaclinica'`
 
-### Erro: `404 Not Found` após reescrita de URL
+-   **Cenário do Domínio Raiz (Sem Tenant):**
+    -   URL: `medicorex.app`
+    -   `host`: `medicorex.app`
+    -   `host.split('.')`: `['medicorex', 'app']` (2 partes)
+    -   `tenantId` esperado: `null`
 
--   **Causa Raiz:** Inicialmente, a pasta que agrupava as rotas do tenant foi nomeada como `src/app/_tenants`. No Next.js, pastas prefixadas com `_` (underscore) são consideradas privadas e não participam do roteamento. Portanto, quando o middleware reescrevia a URL para `/_tenants/acme/dashboard`, o Next.js não conseguia encontrar uma rota correspondente, resultando em um 404.
--   **Solução Definitiva:** Renomear a pasta de `_tenants` para `(tenants)`. Pastas envoltas em parênteses são tratadas pelo Next.js como **Grupos de Rotas**. Elas servem para organizar a estrutura de arquivos, mas são completamente ignoradas no caminho da URL. Isso alinhou nosso projeto com a convenção correta do Next.js e resolveu o erro de roteamento.
+Uma lógica de extração de `tenantId` que não levasse em conta essas nuances resultaria em erros catastróficos, como considerar `'medicorex'` um tenant no domínio raiz ou falhar em extrair o tenant em `localhost`. Isso levaria a erros 404, pois o Next.js não encontraria uma rota correspondente a um `tenantId` incorreto ou nulo.
 
-### Problemas Gerais de Login e Redirecionamento
+### 4.2. A Anatomia da Solução Robusta
 
--   **Causa Raiz:** A lógica de redirecionamento no lado do cliente, após o login ou criação de clínica, tentava construir a URL do subdomínio manualmente usando `window.location.href` e `process.env.NEXT_PUBLIC_ROOT_DOMAIN`. Isso era complexo e propenso a erros entre os ambientes de `localhost` e produção/desenvolvimento.
--   **Solução Definitiva:** Simplificar radicalmente o redirecionamento. Após um login/cadastro bem-sucedido, o cliente agora sempre executa `router.push('/dashboard')`. Se a página de login já estiver no subdomínio correto (`acme.dominio.com/auth/login`), a navegação relativa funciona perfeitamente. Se o login for feito no domínio principal, a `loginAction` (Server Action) retorna o `tenantSlug`, e o cliente executa um `window.location.href` para a URL do subdomínio, deixando o middleware e o layout lidarem com o resto na nova página. Essa abordagem é mais limpa e robusta.
+A solução implementada em `src/middleware.ts` é elegante e robusta. Vamos dissecá-la:
+
+```typescript
+const host = request.headers.get('host');
+const parts = host.split('.');
+const isLocalhost = host.includes('localhost');
+
+// A Mágica Acontece Aqui:
+const tenantId = (isLocalhost && parts.length > 1) || (!isLocalhost && parts.length > 2) ? parts[0] : null;
+```
+
+A expressão booleana faz tudo:
+1.  `isLocalhost && parts.length > 1`: Se o host contém `localhost` E tem mais de uma parte (ex: `['acme', 'localhost:3000']`), a condição é verdadeira.
+2.  `!isLocalhost && parts.length > 2`: Se o host NÃO contém `localhost` (ou seja, produção) E tem mais de duas partes (ex: `['acme', 'medicorex', 'app']`), a condição é verdadeira.
+3.  `? parts[0] : null`: Se qualquer uma das condições acima for verdadeira, o `tenantId` é a primeira parte do array (`parts[0]`). Caso contrário, é `null`, tratando corretamente o domínio raiz.
+
+Esta lógica cobre todos os cenários e é a base que permite que todo o sistema de roteamento funcione de forma coesa entre os diferentes ambientes.
+
+---
+
+## Seção 5: Conclusões e Próximos Passos Recomendados
+
+Esta documentação fornece um retrato fiel e detalhado do estado atual do projeto MedicoRex. A arquitetura é sólida, mas requer manutenção e atenção a certos pontos.
+
+**Recomendações Críticas:**
+1.  **Remoção Imediata de Código Morto**: Os arquivos em `src/middleware/chains/` e `src/middleware/utils/token-utils.ts` são obsoletos e devem ser excluídos para evitar confusão e débito técnico.
+2.  **Investigação da Pasta `src/app/_tenants`**: Esta pasta parece ser uma duplicata ou uma versão antiga da lógica de tenant e deve ser removida para evitar conflitos e inchaço do projeto.
+3.  **Substituir o Cache em Memória**: Se a performance do middleware se tornar um gargalo, o `cache-utils.ts` deve ser substituído por uma solução de cache distribuído como Redis ou Memcached antes do deploy em larga escala.
+
+Este documento deve ser mantido atualizado à medida que o projeto evolui. Ele é a principal fonte de verdade para qualquer desenvolvedor que venha a trabalhar nesta base de código.
