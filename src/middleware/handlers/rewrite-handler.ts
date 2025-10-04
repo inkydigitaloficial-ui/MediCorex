@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 
 export class RewriteHandler {
@@ -20,10 +21,12 @@ export class RewriteHandler {
     const response = NextResponse.rewrite(url);
     
     // Adiciona headers de debug para facilitar a depuração em desenvolvimento.
-    response.headers.set('x-middleware-rewrite', url.pathname);
-    response.headers.set('x-tenant-id', tenantId);
-    if (userId) {
-      response.headers.set('x-user-id', userId);
+    if (process.env.NODE_ENV === 'development') {
+      response.headers.set('x-middleware-rewrite', url.pathname);
+      response.headers.set('x-tenant-id', tenantId);
+      if (userId) {
+        response.headers.set('x-user-id', userId);
+      }
     }
     
     return response;

@@ -8,12 +8,13 @@ const db = admin.firestore();
 
 
 /**
- * @deprecated Este fluxo agora é tratado pelas Server Actions no front-end.
- * A função é mantida para referência ou uso futuro, mas a lógica principal
- * foi movida para `src/app/auth/actions.ts` no `createClinicAction`.
+ * @deprecated Este gatilho está desativado. O fluxo de criação de tenant e usuário
+ * agora é gerenciado por uma Server Action (`createClinicAction`) no front-end.
+ * Isso proporciona um fluxo de onboarding mais rápido e controlável.
+ * A função é mantida vazia para referência e para evitar execuções inesperadas.
  */
 export const onUserCreate = functions.region('southamerica-east1').auth.user().onCreate(async (user) => {
-    functions.logger.info(`Função onUserCreate acionada para ${user.uid}, mas o fluxo agora é manual via app. Nenhuma ação será tomada.`);
+    functions.logger.info(`Gatilho onUserCreate acionado para ${user.uid}, mas nenhuma ação é necessária. O fluxo foi migrado para Server Actions.`);
     return null;
 });
 
