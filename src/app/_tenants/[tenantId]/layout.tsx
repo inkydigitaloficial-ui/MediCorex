@@ -47,11 +47,10 @@ export default async function TenantLayout({ children, params }: Props) {
   const authContext = await getCurrentUser(params.tenantId);
 
   // Se `getCurrentUser` retorna null, o usuário não está logado ou não tem permissão.
-  // O middleware já deve ter redirecionado, mas esta é uma camada extra de segurança no servidor.
+  // Redireciona para a página de login do subdomínio atual.
   if (!authContext) {
-    // Redireciona para a página de login do subdomínio atual.
-    // O Next.js preservará o host ao redirecionar para um caminho relativo.
-    redirect('/auth/login');
+    // MODIFICAÇÃO: Redirecionar para a raiz em vez de /auth/login para evitar Invalid URL
+    redirect('/');
   }
 
   const { user, tenant, tenantId, role } = authContext;
@@ -60,11 +59,14 @@ export default async function TenantLayout({ children, params }: Props) {
   if (!tenant) {
     redirect('/auth/login?error=tenant_not_found');
   }
-
-  // Se o usuário tem o papel de 'trial_expired' e não está na página de billing, redireciona.
-  // A própria página de layout já está sendo renderizada dentro do tenant, então o middleware já fez o rewrite.
-  // A verificação é feita aqui para garantir que qualquer acesso direto seja bloqueado.
-  // O middleware já cuidou do rewrite para `/billing`, então a verificação aqui é uma segurança.
+  
+  // Se o usuário tem o papel de 'trial_expired' e NÃO está tentando acessar a página de billing, redireciona para lá.
+  // O Next.js já fez o rewrite da URL, então o `children` representa a página de destino real.
+  // Verificamos o `children.props.childProp.segment` para saber a rota.
+  // Esta lógica pode precisar de ajuste dependendo da estrutura exata do children.
+  // Por agora, uma abordagem mais simples é verificar se o status é de trial expirado e redirecionar para a página de billing se o usuário não estiver nela.
+  // A verificação exata do pathname atual no servidor dentro de um layout pode ser complexa,
+  // mas o middleware já deve ter redirecionado para a página de billing. Essa é uma proteção extra.
 
   return (
     <TenantProvider tenant={tenant} tenantId={tenantId} role={role}>

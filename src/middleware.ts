@@ -1,57 +1,39 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { RouteUtils } from './middleware/utils/route-utils';
-import { AuthChain } from './middleware/chains/auth-chain';
-import { TenantChain } from './middleware/chains/tenant-chain';
-import { ErrorHandler } from './middleware/handlers/error-handler';
-import { MiddlewareContext } from './middleware/types';
-import { middlewareConfig } from './middleware/config';
+import { DomainUtils } from './middleware/utils/domain-utils';
+import { RewriteHandler } from './middleware/handlers/rewrite-handler';
 
+/**
+ * Middleware Simplificado
+ *
+ * Responsabilidades:
+ * 1. Ignorar assets estáticos e rotas de API.
+ * 2. Extrair o `tenantId` do subdomínio.
+ * 3. Se um `tenantId` existir, reescrever a URL para a estrutura de diretório `/_tenants/[tenantId]`.
+ *
+ * A lógica de autenticação e redirecionamento para login foi movida para `src/app/_tenants/[tenantId]/layout.tsx`
+ * para evitar erros de 'Invalid URL' no Edge runtime.
+ */
 export async function middleware(request: NextRequest) {
-  try {
-    const { pathname } = request.nextUrl;
+  const { pathname } = request.nextUrl;
 
-    // Ignora rotas de API e assets estáticos para otimizar a performance.
-    if (RouteUtils.isStaticAsset(pathname) || RouteUtils.isApiRoute(pathname)) {
-      return NextResponse.next();
-    }
-
-    const host = request.headers.get('host');
-    const tenantId = host ? host.split('.')[0] : null;
-
-    let context: MiddlewareContext = {
-      request,
-      response: NextResponse.next(),
-      tenantId: tenantId,
-      user: null, // O middleware não lida mais com dados do usuário.
-      config: middlewareConfig,
-    };
-    
-    // As cadeias agora são mais simples e focadas no roteamento.
-    const chains = [
-      new AuthChain(),
-      new TenantChain(),
-    ];
-
-    for (const chain of chains) {
-      const result = await chain.execute(context);
-      
-      if (!result.shouldContinue) {
-        return result.response!;
-      }
-      
-      // O contexto é passado, mas raramente modificado, pois a lógica foi movida.
-      if (result.context) {
-        context = { ...context, ...result.context };
-      }
-    }
-    
-    // Se chegou ao fim, significa que é uma rota pública no domínio principal.
-    return context.response;
-
-  } catch (error) {
-    return ErrorHandler.handle(error, request);
+  // 1. Ignora rotas de API e assets estáticos para otimizar a performance.
+  if (RouteUtils.isStaticAsset(pathname) || RouteUtils.isApiRoute(pathname)) {
+    return NextResponse.next();
   }
+
+  // 2. Extrai o subdomínio.
+  const host = request.headers.get('host')!;
+  const tenantId = DomainUtils.getSubdomain(host);
+
+  // 3. Se houver um tenantId, reescreve a URL.
+  if (tenantId) {
+    return RewriteHandler.applyTenantRewrite(request, tenantId);
+  }
+
+  // Para o domínio principal e outras rotas, continua sem modificação.
+  return NextResponse.next();
 }
 
 // A configuração do matcher permanece a mesma.

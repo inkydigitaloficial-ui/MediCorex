@@ -27,35 +27,38 @@ export async function loginAction(prevState: LoginFormState, formData: FormData)
     
     const { email } = validatedFields.data;
 
-    try {
-        const userRecord = await adminAuth.getUserByEmail(email);
-        const tenantUsersSnapshot = await adminFirestore.collection('tenant_users').where('userId', '==', userRecord.uid).limit(1).get();
-
-        if (tenantUsersSnapshot.empty) {
-            // Se o usuário existe mas não tem tenant, é um novo cadastro.
-            // O front-end o levará para a página de criação da clínica.
-            return { success: true, error: null, tenantSlug: null };
-        }
-
-        const tenantUserData = tenantUsersSnapshot.docs[0].data();
-        const tenantDoc = await adminFirestore.collection('tenants').doc(tenantUserData.tenantId).get();
-
-        if (!tenantDoc.exists) {
-            return { error: 'Clínica associada não encontrada.', success: false };
-        }
-        
-        const tenantData = tenantDoc.data();
-        // A action retorna o 'slug' do tenant para o cliente usar no redirecionamento
-        return { success: true, error: null, tenantSlug: tenantData?.slug };
-
-    } catch (error: any) {
+    // A remoção do try-catch permite que o Firebase lance seus próprios erros,
+    // que são mais descritivos e podem ser tratados de forma mais granular se necessário.
+    const userRecord = await adminAuth.getUserByEmail(email).catch((error) => {
         if (error.code === 'auth/user-not-found') {
-            return { error: 'Nenhum usuário encontrado com este email.', success: false };
+            // Este é um caso esperado, não um erro de sistema.
+            // Lançamos um erro específico que a UI pode interpretar.
+            throw new Error('Nenhum usuário encontrado com este email.');
         }
-        console.error("Erro durante o login na Action:", error);
-        return { error: 'Credenciais inválidas. Verifique seu email e senha.', success: false };
+        // Para outros erros (ex: rede), relançamos o erro original.
+        throw error;
+    });
+
+    const tenantUsersSnapshot = await adminFirestore.collection('tenant_users').where('userId', '==', userRecord.uid).limit(1).get();
+
+    if (tenantUsersSnapshot.empty) {
+        // Se o usuário existe mas não tem tenant, é um novo cadastro.
+        return { success: true, error: null, tenantSlug: null };
     }
+
+    const tenantUserData = tenantUsersSnapshot.docs[0].data();
+    const tenantDoc = await adminFirestore.collection('tenants').doc(tenantUserData.tenantId).get();
+
+    if (!tenantDoc.exists) {
+        // Isso indica uma inconsistência de dados no banco.
+        throw new Error('Clínica associada não encontrada.');
+    }
+    
+    const tenantData = tenantDoc.data();
+    // A action retorna o 'slug' do tenant para o cliente usar no redirecionamento
+    return { success: true, error: null, tenantSlug: tenantData?.slug };
 }
+
 
 // --- Nova Ação para Criar a Clínica ---
 
