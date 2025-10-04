@@ -23,15 +23,24 @@ export class AuthChain {
       if (token) {
         const authResult = await TokenUtils.validateToken(request, token, tenantId || undefined);
         if (authResult.isValid) {
-          const redirectUrl = new URL(tenantId ? '/dashboard' : '/auth/setup-account', request.url);
-          if (tenantId) {
-             const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:3000';
-             redirectUrl.host = `${tenantId}.${rootDomain}`;
+          const userTenants = authResult.user.tenants as { [key: string]: string } | undefined;
+          const firstTenant = userTenants ? Object.keys(userTenants)[0] : null;
+
+          if (firstTenant) {
+             const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:9002';
+             const redirectUrl = new URL('/dashboard', request.url);
+             redirectUrl.host = `${firstTenant}.${rootDomain}`;
+             return { 
+                shouldContinue: false, 
+                response: NextResponse.redirect(redirectUrl) 
+            };
+          } else {
+             const createClinicUrl = new URL('/auth/create-clinic', request.url);
+             return { 
+                shouldContinue: false, 
+                response: NextResponse.redirect(createClinicUrl) 
+            };
           }
-          return { 
-            shouldContinue: false, 
-            response: NextResponse.redirect(redirectUrl) 
-          };
         }
       }
       // Se não há token ou o token é inválido, permite o acesso à rota de autenticação.
