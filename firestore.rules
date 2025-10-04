@@ -1,130 +1,147 @@
 /**
- * @file Firebase Security Rules for the application.
+ * @file Overview
+ * This ruleset enforces a multi-tenant security model where data is segregated by tenant.
+ * Each tenant has an owner who has full control over the tenant's data. Users can be associated with tenants with different roles.
  *
- * @core_philosophy This ruleset enforces a multi-tenant security model where tenants (clinics) own their data,
- * users have profiles, and tenant users are explicitly mapped for access control. Access is generally restricted
- * to authorized tenant members.
+ * Data Structure:
+ * - /tenants/{tenantId}: Contains tenant-level information, including the owner.
+ * - /tenants/{tenantId}/pacientes/{pacienteId}: Contains patient data specific to a tenant.
+ * - /tenants/{tenantId}/pacientes/{pacienteId}/consultas/{consultaId}: Contains consultation data for a specific patient.
+ * - /tenants/{tenantId}/pacientes/{pacienteId}/ai_audit_trail/{auditId}: Audit trail for AI summaries.
+ * - /tenant_users/{docId}: Maps users to tenants and defines their roles within each tenant. Document ID is not enforced.
+ * - /users/{userId}: Stores user profile information.
  *
- * @data_structure The Firestore database is structured as follows:
- * - /tenants/{tenantId}: Contains tenant-level information.
- * - /tenants/{tenantId}/pacientes/{pacienteId}: Contains patient data for a specific tenant.
- * - /tenants/{tenantId}/consultas/{consultaId}: Contains appointment data for a specific tenant.
- * - /tenant_users/{docId}: Maps users to tenants and defines their roles.
- * - /users/{userId}: Contains user profile information.
+ * Key Security Decisions:
+ * - Tenants can only be created and managed by their owner (specified in the ownerId field).
+ * - Access to patient and consultation data is restricted to users who are members of the tenant.
+ * - Listing of tenants is disallowed for non-owners.
+ * - Only the user can read/write their own profile data.
+ * - The `tenant_users` collection is used to efficiently determine a user's role within a tenant for authorization.
  *
- * @key_security_decisions
- * - User listing is disallowed to protect privacy.
- * - `tenant_users` collection enforces user-tenant relationships.
- * - OwnerId field inside the Tenant document determines tenant ownership
- *
- * @denormalization_for_authorization
- * - The `tenant_users` collection denormalizes user-tenant relationships to optimize authorization checks,
- * avoiding costly queries in the rules.  Each `TenantUser` document contains `tenantId`, `userId`, and `role`,
- * allowing direct validation of a user's access rights within a specific tenant.
- *
- * @structural_segregation
- * - Tenant-specific data (patients, appointments) is stored in subcollections under the `/tenants/{tenantId}` path,
- * ensuring clear separation and access control for each tenant's data.
+ * Denormalization for Authorization:
+ * - The `TenantUser` entity denormalizes the user-tenant relationship to allow for efficient role-based access control.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to the tenants collection. Only the owner of a tenant can create, update, or delete it. Anyone can read tenant data.
+     * @description Controls access to the tenant documents.
      * @path /tenants/{tenantId}
-     * @allow (create) - User with UID 'user_abc' can create a tenant if request.resource.data.ownerId == 'user_abc'.
-     * @allow (get, list) - Any user can read any tenant's data.
-     * @allow (update, delete) - User with UID 'user_abc' can update/delete tenant 'tenant_123' if they are the owner.
-     * @deny (create) - User with UID 'user_xyz' cannot create a tenant with ownerId 'user_abc'.
-     * @deny (update, delete) - User with UID 'user_xyz' cannot update/delete tenant 'tenant_123' if they are not the owner.
-     * @principle Enforces document ownership for writes.
+     * @allow (create) User with UID 'user_abc' can create a tenant with ownerId 'user_abc'.
+     * @allow (get, update, delete) User with UID 'user_abc' can get, update, or delete a tenant where they are the owner.
+     * @deny (create) User with UID 'user_xyz' cannot create a tenant with ownerId 'user_abc'.
+     * @deny (list) Non-owners cannot list tenants.
+     * @principle Enforces tenant ownership for write operations and prevents unauthorized listing.
      */
     match /tenants/{tenantId} {
-      allow get, list: if true;
+      // Function to check if the user is the owner of the tenant
+      function isTenantOwner(tenantId) {
+        return get(/databases/$(database)/documents/tenants/$(tenantId)).data.ownerId == request.auth.uid;
+      }
+
+      allow get: if isSignedIn() && isTenantOwner(tenantId);
+      allow list: if false;
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if isSignedIn() && isTenantOwner(tenantId);
+      allow update: if isSignedIn() && isTenantOwner(tenantId) && resource != null;
+      allow delete: if isSignedIn() && isTenantOwner(tenantId) && resource != null;
     }
 
     /**
-     * @description Controls access to the pacientes subcollection within a tenant. Only members of the tenant can create, update, or delete pacientes.
+     * @description Controls access to patient documents within a tenant.
      * @path /tenants/{tenantId}/pacientes/{pacienteId}
-     * @allow (create) - User with UID 'user_abc' can create a paciente in tenant 'tenant_123' if they are a member of the tenant.
-     * @allow (get, list) - User with UID 'user_abc' can read/list pacientes in tenant 'tenant_123' if they are a member of the tenant.
-     * @allow (update, delete) - User with UID 'user_abc' can update/delete paciente 'paciente_456' in tenant 'tenant_123' if they are a member of the tenant and the paciente exists.
-     * @deny (create) - User with UID 'user_xyz' cannot create a paciente in tenant 'tenant_123' if they are not a member of the tenant.
-     * @deny (update, delete) - User with UID 'user_xyz' cannot update/delete paciente 'paciente_456' in tenant 'tenant_123' if they are not a member of the tenant or the paciente doesn't exist.
-     * @principle Restricts access to tenant members.
+     * @allow (create) User with UID 'user_abc' and role 'admin' in tenant 'tenant_123' can create a patient.
+     * @allow (get, list, update, delete) User with UID 'user_abc' and role 'admin' in tenant 'tenant_123' can get, list, update, or delete a patient.
+     * @deny (create, update, delete) User with UID 'user_xyz' cannot create, update, or delete patients in tenant 'tenant_123' if they are not a member of the tenant or do not have sufficient privileges.
+     * @principle Enforces tenant membership for access to patient data.
      */
     match /tenants/{tenantId}/pacientes/{pacienteId} {
-      allow get, list: if isSignedIn() && isTenantMember(tenantId);
-      allow create: if isSignedIn() && isTenantMember(tenantId);
-      allow update, delete: if isSignedIn() && isTenantMember(tenantId);
+      // Function to check if the user has a role in the tenant
+      function hasTenantRole(tenantId) {
+        return get(/databases/$(database)/documents/tenant_users/$(request.auth.uid + '_' + tenantId)).data.role != null;
+      }
+
+      allow get, list: if isSignedIn() && hasTenantRole(tenantId);
+      allow create: if isSignedIn() && hasTenantRole(tenantId);
+      allow update: if isSignedIn() && hasTenantRole(tenantId) && resource != null;
+      allow delete: if isSignedIn() && hasTenantRole(tenantId) && resource != null;
     }
 
     /**
-     * @description Controls access to the consultas subcollection within a tenant. Only members of the tenant can create, update, or delete consultas.
-     * @path /tenants/{tenantId}/consultas/{consultaId}
-     * @allow (create) - User with UID 'user_abc' can create a consulta in tenant 'tenant_123' if they are a member of the tenant.
-     * @allow (get, list) - User with UID 'user_abc' can read/list consultas in tenant 'tenant_123' if they are a member of the tenant.
-     * @allow (update, delete) - User with UID 'user_abc' can update/delete consulta 'consulta_789' in tenant 'tenant_123' if they are a member of the tenant and the consulta exists.
-     * @deny (create) - User with UID 'user_xyz' cannot create a consulta in tenant 'tenant_123' if they are not a member of the tenant.
-     * @deny (update, delete) - User with UID 'user_xyz' cannot update/delete consulta 'consulta_789' in tenant 'tenant_123' if they are not a member of the tenant or the consulta doesn't exist.
-     * @principle Restricts access to tenant members.
+     * @description Controls access to consultation documents within a patient's record.
+     * @path /tenants/{tenantId}/pacientes/{pacienteId}/consultas/{consultaId}
+     * @allow (create) User with UID 'user_abc' and role 'admin' in tenant 'tenant_123' can create a consultation.
+     * @allow (get, list, update, delete) User with UID 'user_abc' and role 'admin' in tenant 'tenant_123' can get, list, update, or delete a consultation.
+     * @deny (create, update, delete) User with UID 'user_xyz' cannot create, update, or delete consultations in tenant 'tenant_123' if they are not a member of the tenant or do not have sufficient privileges.
+     * @principle Enforces tenant membership for access to consultation data.
      */
-    match /tenants/{tenantId}/consultas/{consultaId} {
-      allow get, list: if isSignedIn() && isTenantMember(tenantId);
-      allow create: if isSignedIn() && isTenantMember(tenantId);
-      allow update, delete: if isSignedIn() && isTenantMember(tenantId);
-    }
+    match /tenants/{tenantId}/pacientes/{pacienteId}/consultas/{consultaId} {
+      // Function to check if the user has a role in the tenant
+      function hasTenantRole(tenantId) {
+        return get(/databases/$(database)/documents/tenant_users/$(request.auth.uid + '_' + tenantId)).data.role != null;
+      }
 
-    /**
-     * @description Controls access to the tenant_users collection. Allows creation only if the user ID matches the authenticated user and allows reads and writes only for authorized users.
-     * @path /tenant_users/{docId}
-     * @allow (create) - User with UID 'user_abc' can create a tenant_user document if request.resource.data.userId == 'user_abc'.
-     * @allow (get, list) - Any signed-in user can read tenant_user documents.
-     * @allow (update, delete) - Any signed-in user can update/delete tenant_user documents if resource exists.
-     * @deny (create) - User with UID 'user_xyz' cannot create a tenant_user document with userId 'user_abc'.
-     * @principle Enforces document ownership for creation and restricts access to authorized users.
-     */
-    match /tenant_users/{docId} {
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isSignedIn() && get(/databases/$(database)/documents/tenant_users/$(docId)).data.userId == request.auth.uid;
+      allow get, list: if isSignedIn() && hasTenantRole(tenantId);
+      allow create: if isSignedIn() && hasTenantRole(tenantId);
+      allow update: if isSignedIn() && hasTenantRole(tenantId) && resource != null;
+      allow delete: if isSignedIn() && hasTenantRole(tenantId) && resource != null;
     }
 
      /**
-      * @description Controls access to the users collection. Allows a user to create their own profile and only allows them to read, update, or delete their own profile.
-      * @path /users/{userId}
-      * @allow (create) - User with UID 'user_abc' can create their own profile.
-      * @allow (get) - User with UID 'user_abc' can read their own profile.
-      * @allow (update, delete) - User with UID 'user_abc' can update/delete their own profile if it exists.
-      * @deny (list) - Listing all users is denied.
-      * @deny (create) - User with UID 'user_xyz' cannot create a profile for 'user_abc'.
-      * @deny (get, update, delete) - User with UID 'user_xyz' cannot read/update/delete the profile of 'user_abc'.
-      * @principle Restricts access to a user's own data tree.
+      * @description Controls access to AI audit trail entries within a patient's record.
+      * @path /tenants/{tenantId}/pacientes/{pacienteId}/ai_audit_trail/{auditId}
+      * @allow (create) User with UID 'user_abc' and role 'admin' in tenant 'tenant_123' can create an audit entry.
+      * @allow (get, list, update, delete) User with UID 'user_abc' and role 'admin' in tenant 'tenant_123' can get, list, update, or delete an audit entry.
+      * @deny (create, update, delete) User with UID 'user_xyz' cannot create, update, or delete audit entries in tenant 'tenant_123' if they are not a member of the tenant or do not have sufficient privileges.
+      * @principle Enforces tenant membership for access to AI audit trail data.
       */
-    match /users/{userId} {
-        allow get: if isOwner(userId);
-        allow list: if false;
-        allow create: if isOwner(userId);
-        allow update, delete: if isOwner(userId);
+    match /tenants/{tenantId}/pacientes/{pacienteId}/ai_audit_trail/{auditId} {
+       // Function to check if the user has a role in the tenant
+      function hasTenantRole(tenantId) {
+        return get(/databases/$(database)/documents/tenant_users/$(request.auth.uid + '_' + tenantId)).data.role != null;
+      }
+
+      allow get, list: if isSignedIn() && hasTenantRole(tenantId);
+      allow create: if isSignedIn() && hasTenantRole(tenantId);
+      allow update: if isSignedIn() && hasTenantRole(tenantId) && resource != null;
+      allow delete: if isSignedIn() && hasTenantRole(tenantId) && resource != null;
     }
 
+    /**
+     * @description Controls access to the tenant_users collection. This collection maps users to tenants and assigns roles.
+     * @path /tenant_users/{docId}
+     * @allow (create) Any signed-in user can create a tenant_user document.
+     * @allow (get, list, update, delete) Any signed-in user can get, list, update, or delete a tenant_user document.
+     * @principle Allows anyone to create/modify tenant user mappings.
+     */
+    match /tenant_users/{docId} {
+      allow get, list, create, update, delete: if isSignedIn();
+    }
+
+    /**
+     * @description Controls access to user profile documents.
+     * @path /users/{userId}
+     * @allow (create) User with UID 'user_abc' can create their own profile document.
+     * @allow (get, update, delete) User with UID 'user_abc' can get, update, or delete their own profile document.
+     * @deny (create, get, update, delete) User with UID 'user_xyz' cannot create, get, update, or delete the profile document of user 'user_abc'.
+     * @principle Enforces user ownership for profile data.
+     */
+    match /users/{userId} {
+      // Function to check if the user is the owner of the profile
+      function isOwner(userId) {
+        return userId == request.auth.uid;
+      }
+
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId) && resource != null;
+      allow delete: if isSignedIn() && isOwner(userId) && resource != null;
+    }
+
+    // Define the isSignedIn function
     function isSignedIn() {
       return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    function isTenantOwner(tenantId) {
-      return get(/databases/$(database)/documents/tenants/$(tenantId)).data.ownerId == request.auth.uid;
-    }
-
-    function isTenantMember(tenantId) {
-      return exists(/databases/$(database)/documents/tenant_users/$(request.auth.uid)_$(tenantId));
     }
   }
 }
