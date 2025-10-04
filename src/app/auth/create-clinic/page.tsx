@@ -35,16 +35,13 @@ export default function CreateClinicPage() {
   const [rootDomain, setRootDomain] = useState('');
 
   useEffect(() => {
-    // Define o rootDomain a partir do window.location.host quando o componente é montado no cliente
-    setRootDomain(DomainUtils.getRootDomain(window.location.host));
+     setRootDomain(DomainUtils.getRootDomain(window.location.host));
   }, []);
 
   useEffect(() => {
-    // Sugere um slug baseado no nome da clínica
     setClinicSlug(slugify(clinicName));
   }, [clinicName]);
 
-  // Se o usuário não estiver logado, redireciona para o login
   useEffect(() => {
     if (!isUserLoading && !user) {
       toast({ title: 'Sessão expirada', description: 'Por favor, faça login novamente.', variant: 'destructive'});
@@ -67,22 +64,12 @@ export default function CreateClinicPage() {
     if (result.success) {
         toast({ title: 'Clínica criada com sucesso!', description: 'Redirecionando para seu painel...' });
         
-        const { protocol, host } = window.location;
-        const currentSubdomain = DomainUtils.extractSubdomain(host);
-
-        // Constrói a nova URL substituindo o subdomínio ou adicionando-o se não houver um.
-        let newHost: string;
-        if (currentSubdomain) {
-            newHost = host.replace(currentSubdomain, clinicSlug);
-        } else {
-            newHost = `${clinicSlug}.${host}`;
-        }
-        
-        const newUrl = `${protocol}//${newHost}/dashboard`;
+        // Lógica de redirecionamento SIMPLIFICADA E CORRIGIDA
+        const { protocol } = window.location;
+        const newUrl = `${protocol}//${clinicSlug}.${rootDomain}/dashboard`;
         window.location.href = newUrl;
 
     } else {
-        // Exibe o erro específico retornado pela action
         setError(result.error);
         toast({ title: 'Erro ao criar clínica', description: result.error, variant: 'destructive'});
         setLoading(false);
@@ -131,10 +118,9 @@ export default function CreateClinicPage() {
                             className="rounded-r-none focus:!ring-offset-0 focus:z-10 relative bg-background/70"
                         />
                         <span className="inline-flex items-center px-3 h-10 text-sm bg-muted border border-l-0 rounded-r-md text-muted-foreground">
-                            .{rootDomain}
+                            .{rootDomain.split(':')[0]}
                         </span>
                     </div>
-                    {/* Exibe a mensagem de erro específica retornada pela action */}
                     {error && <p className="text-sm text-destructive pt-2">{error}</p>}
                 </div>
             </CardContent>
@@ -147,3 +133,5 @@ export default function CreateClinicPage() {
     </Card>
   );
 }
+
+    

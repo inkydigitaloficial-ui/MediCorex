@@ -1,6 +1,5 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { DomainUtils } from './middleware/utils/domain-utils';
 import { RouteUtils } from './middleware/utils/route-utils';
 import { AuthChain } from './middleware/chains/auth-chain';
 import { TenantChain } from './middleware/chains/tenant-chain';
@@ -17,7 +16,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
-    const tenantId = DomainUtils.extractSubdomain(request.headers.get('host'));
+    const host = request.headers.get('host');
+    const tenantId = host ? host.split('.')[0] : null;
 
     let context: MiddlewareContext = {
       request,

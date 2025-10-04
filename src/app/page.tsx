@@ -10,7 +10,6 @@ import Link from "next/link";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Logo } from "@/components/logo";
 import { Footer } from '@/components/footer';
-import { DomainUtils } from '@/middleware/utils/domain-utils';
 
 function DemoLink() {
   const [demoUrl, setDemoUrl] = useState('');
@@ -18,7 +17,8 @@ function DemoLink() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const protocol = window.location.protocol;
-      const rootDomain = DomainUtils.getRootDomain(window.location.host);
+      // Use a variável de ambiente para o domínio raiz, que é mais seguro e desacoplado.
+      const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:9002';
       const newUrl = `${protocol}//acme.${rootDomain}`;
       setDemoUrl(newUrl);
     }

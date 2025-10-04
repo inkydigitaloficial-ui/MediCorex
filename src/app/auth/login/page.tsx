@@ -15,7 +15,7 @@ import { loginAction } from '../actions';
 import { useAuth } from '@/firebase/hooks';
 import { createSessionCookie } from '../session/actions';
 import { Loader2 } from 'lucide-react';
-import { DomainUtils } from '@/middleware/utils/domain-utils';
+
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -44,7 +44,7 @@ function LoginFormComponent() {
         title: 'Erro no Login',
         description: state.error,
       });
-      setIsClientSigningIn(false); // Garante que o estado de loading é resetado
+      setIsClientSigningIn(false);
     }
 
     if (state.success && auth) {
@@ -59,24 +59,25 @@ function LoginFormComponent() {
             description: 'Redirecionando...',
           });
 
-          // Se a action retornou um slug, o usuário tem uma clínica
-          if (state.tenantSlug) {
-              const { protocol, host } = window.location;
-              const currentSubdomain = DomainUtils.extractSubdomain(host);
-              let newHost = host;
-
-              if(currentSubdomain) {
-                newHost = host.replace(currentSubdomain, state.tenantSlug);
-              } else {
-                newHost = `${state.tenantSlug}.${host}`;
-              }
-              
-              const newUrl = `${protocol}//${newHost}/dashboard`;
-              window.location.href = newUrl;
-
-          } else {
-              // Se não retornou slug, é um novo usuário que precisa criar uma clínica
+          // Se o usuário não tem clínica, vai para a página de criação
+          if (!state.tenantSlug) {
               router.push('/auth/create-clinic');
+              return;
+          }
+
+          // Lógica de redirecionamento SIMPLIFICADA
+          // A URL no navegador já está correta (ex: acme.localhost ou app.localhost).
+          // Apenas navegamos para /dashboard, e o middleware fará o rewrite para a página do tenant.
+          // Isso funciona tanto em dev quanto em prod.
+          const host = window.location.host;
+          if (host.startsWith(state.tenantSlug)) {
+             router.push('/dashboard');
+          } else {
+             // Se o login foi feito na página principal, faz o redirect completo.
+             const { protocol } = window.location;
+             const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:9002';
+             const newUrl = `${protocol}//${state.tenantSlug}.${rootDomain}/dashboard`;
+             window.location.href = newUrl;
           }
         })
         .catch((error) => {
@@ -163,3 +164,5 @@ export default function LoginPage() {
     </Suspense>
   );
 }
+
+    

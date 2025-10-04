@@ -1,63 +1,59 @@
 
-import { middlewareConfig } from '../config';
-
 export class DomainUtils {
+  
   /**
-   * Extrai o subdomínio do hostname da requisição.
-   * Ex: "clinica-a.medicorex.app" -> "clinica-a"
-   * Ex: "app.localhost:9002" -> "app"
-   * Ex: "app.1234.cloudworkstations.dev" -> "app"
+   * Extrai o subdomínio do hostname.
+   * Ex: `app.dominio.com` -> `app`
+   * Ex: `localhost:3000` -> `null`
+   * Ex: `123-porta-workspace.cloudworkstations.dev` -> `123`
    */
-  static extractSubdomain(hostname: string | null): string | null {
-    if (!hostname) return null;
+  static getSubdomain(hostname: string): string | null {
+    const parts = hostname.split('.');
+    
+    // Em produção: acme.medicorex.app -> ['acme', 'medicorex', 'app'] (length 3)
+    // Em dev local: acme.localhost:9002 -> ['acme', 'localhost:9002'] (length 2)
+    // Em Cloud Workstation: acme.9002-....cloudworkstations.dev -> ['acme', '9002-....'] (length > 2)
 
-    const normalizedHostname = hostname.toLowerCase();
+    if (parts.length < 2) {
+      return null;
+    }
 
-    // Em desenvolvimento, lida com hosts complexos como os do Cloud Workstation
-    if (normalizedHostname.includes('localhost') || normalizedHostname.includes('cloudworkstations.dev')) {
-      const parts = normalizedHostname.split('.');
-      if (parts.length > 0 && parts[0] !== 'localhost' && !parts[0].endsWith('cloudworkstations')) {
-        // Retorna a primeira parte, que deve ser o slug do tenant
-        return parts[0];
-      }
+    // Se for localhost, o primeiro elemento é o subdomínio
+    if (parts.length === 2 && parts[1].includes('localhost')) {
+      if(parts[0] !== 'localhost') return parts[0];
       return null;
     }
     
-    const rootDomain = middlewareConfig.rootDomain;
-
-    // Se o hostname for igual ao domínio raiz, não há subdomínio.
-    if (normalizedHostname === rootDomain) {
-        return null;
+    // Se for um domínio de produção ou cloud workstation, o primeiro elemento é o subdomínio.
+    // Ignoramos subdomínios comuns como 'www'.
+    if (parts.length > 2) {
+        if (parts[0] === 'www') return null;
+        return parts[0];
     }
     
-    // Verifica se o hostname termina com o domínio raiz (precedido por um ponto).
-    if (normalizedHostname.endsWith(`.${rootDomain}`)) {
-      const subdomain = normalizedHostname.substring(0, normalizedHostname.length - rootDomain.length - 1);
-      
-      // Valida se o subdomínio não está vazio e não contém pontos (multinível).
-      if (subdomain && !subdomain.includes('.')) {
-        return subdomain;
-      }
-    }
-
     return null;
   }
-
+  
   /**
-   * Obtém o domínio raiz a partir do hostname.
-   * Em dev (ex: 'tenant.1234.cloudworkstations.dev'), retorna '1234.cloudworkstations.dev'.
-   * Em prod (ex: 'tenant.medicorex.app'), retorna 'medicorex.app'.
+   * Extrai o domínio raiz do hostname, lidando com ambientes de desenvolvimento.
+   * Ex: `app.dominio.com` -> `dominio.com`
+   * Ex: `app.localhost:3000` -> `localhost:3000`
+   * Ex: `app.123-porta.cloudworkstations.dev` -> `123-porta.cloudworkstations.dev`
    */
   static getRootDomain(hostname: string): string {
+    if (hostname.includes('localhost')) {
+      return hostname.split('.').slice(1).join('.') || hostname;
+    }
+    
     const parts = hostname.split('.');
     if (parts.length > 2) {
-      // Para ambientes de dev como 'tenant-slug.port-forward.cluster-id.cloudworkstations.dev'
-      // ou 'tenant.localhost:3000', pegamos tudo após o primeiro ponto.
-      if (hostname.includes('localhost') || hostname.includes('cloudworkstations.dev')) {
-        return parts.slice(1).join('.');
-      }
+      // Para hosts como 'acme.123.cloudworkstations.dev', retorna '123.cloudworkstations.dev'
+      return parts.slice(1).join('.');
     }
-    // Para produção, usamos o domínio definido na config.
-    return middlewareConfig.rootDomain;
+    
+    // Para 'medicorex.app', retorna ele mesmo.
+    return hostname;
   }
 }
+
+    

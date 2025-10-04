@@ -49,8 +49,10 @@ export default async function TenantLayout({ children, params }: Props) {
   // Se `getCurrentUser` retorna null, o usuário não está logado ou não tem permissão.
   // O middleware já deve ter redirecionado, mas esta é uma camada extra de segurança no servidor.
   if (!authContext) {
-    const loginUrl = new URL(`/auth/login`, `http://${params.tenantId}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`);
-    redirect(loginUrl.toString());
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:9002';
+    const loginUrl = `${protocol}://${params.tenantId}.${rootDomain}/auth/login`;
+    redirect(loginUrl);
   }
 
   const { user, tenant, tenantId, role } = authContext;

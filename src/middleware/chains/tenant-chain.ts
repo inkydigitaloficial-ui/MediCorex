@@ -1,6 +1,8 @@
 
 import { RewriteHandler } from '../handlers/rewrite-handler';
 import { ChainResult, MiddlewareContext } from '../types';
+import { middlewareConfig } from '../config';
+
 
 /**
  * Cadeia de Lógica do Tenant Simplificada
@@ -18,8 +20,8 @@ export class TenantChain {
   async execute(context: MiddlewareContext): Promise<ChainResult> {
     const { request, tenantId } = context;
 
-    // Se não há um tenantId (acesso ao domínio principal), a chain não faz nada.
-    if (!tenantId) {
+    // Se não há um tenantId ou o tenantId é o próprio domínio raiz, a chain não faz nada.
+    if (!tenantId || tenantId === middlewareConfig.rootDomain.split('.')[0]) {
       return { shouldContinue: true, context };
     }
 

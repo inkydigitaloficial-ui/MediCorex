@@ -2,7 +2,6 @@
 import { cookies, headers } from 'next/headers';
 import { adminAuth, adminFirestore } from '@/lib/firebase/admin';
 import { Tenant } from '@/types/tenant'; 
-import { DomainUtils } from '@/middleware/utils/domain-utils';
 import { Timestamp } from 'firebase-admin/firestore';
 
 export interface AuthContext {
@@ -36,7 +35,7 @@ export async function getCurrentUser(tenantIdFromParam?: string): Promise<AuthCo
     const decodedToken = await adminAuth.verifySessionCookie(sessionCookie, true);
     
     const host = headers().get('host');
-    const tenantIdFromSubdomain = DomainUtils.extractSubdomain(host);
+    const tenantIdFromSubdomain = host ? host.split('.')[0] : null;
     const tenantId = tenantIdFromParam || tenantIdFromSubdomain;
 
     const baseUser = {
@@ -46,7 +45,7 @@ export async function getCurrentUser(tenantIdFromParam?: string): Promise<AuthCo
       picture: decodedToken.picture,
     };
 
-    if (!tenantId) {
+    if (!tenantId || tenantId === 'localhost' || tenantId === process.env.NEXT_PUBLIC_ROOT_DOMAIN?.split('.')[0]) {
        return { user: baseUser, tenantId: null, tenant: null, role: null };
     }
 
