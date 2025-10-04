@@ -6,6 +6,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format, setHours, setMinutes } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase/hooks';
@@ -16,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase/hooks';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { cn } from '@/lib/utils';
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -76,10 +78,9 @@ export function AddAgendamentoDialog({ tenantId, onOpenChange, open, selectedDat
         title: data.title,
         status: 'agendado',
         createdBy: user.uid,
-        createdAt: serverTimestamp() as any,
     };
 
-    addDoc(agendamentosCollectionRef, newAgendamentoData)
+    addDoc(agendamentosCollectionRef, { ...newAgendamentoData, createdAt: serverTimestamp() })
     .then(() => {
         toast({
             title: 'Agendamento criado!',
@@ -129,7 +130,7 @@ export function AddAgendamentoDialog({ tenantId, onOpenChange, open, selectedDat
                           role="combobox"
                           className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
                         >
-                          {field.value ? field.value.nome : "Selecione um paciente"}
+                          {field.value ? pacientes?.find(p => p.id === field.value.id)?.nome : "Selecione um paciente"}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </FormControl>
@@ -137,16 +138,16 @@ export function AddAgendamentoDialog({ tenantId, onOpenChange, open, selectedDat
                     <PopoverContent className="w-[375px] p-0">
                       <Command>
                         <CommandInput placeholder="Buscar paciente..." />
-                        <CommandEmpty>Nenhum paciente encontrado.</CommandEmpty>
-                        <CommandGroup>
-                            <CommandList>
-                                {isLoadingPacientes ? <p className='p-2 text-sm text-center'>Carregando...</p> : 
+                        <CommandList>
+                            <CommandEmpty>Nenhum paciente encontrado.</CommandEmpty>
+                            <CommandGroup>
+                                {isLoadingPacientes ? <div className='p-4 text-center text-sm'>Carregando...</div> : 
                                 pacientes?.map((paciente) => (
                                     <CommandItem
                                     value={paciente.nome}
                                     key={paciente.id}
                                     onSelect={() => {
-                                        form.setValue("paciente", paciente);
+                                        form.setValue("paciente", { id: paciente.id, nome: paciente.nome });
                                         setPacientePopoverOpen(false);
                                     }}
                                     >
@@ -159,8 +160,8 @@ export function AddAgendamentoDialog({ tenantId, onOpenChange, open, selectedDat
                                     {paciente.nome}
                                     </CommandItem>
                                 ))}
-                           </CommandList>
-                        </CommandGroup>
+                           </CommandGroup>
+                        </CommandList>
                       </Command>
                     </PopoverContent>
                   </Popover>
