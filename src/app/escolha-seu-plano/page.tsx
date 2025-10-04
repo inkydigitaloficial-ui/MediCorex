@@ -110,7 +110,11 @@ export default function EscolhaPlanoPage() {
 
   const handleChoosePlan = (planId: string) => {
     if (planId === 'enterprise') {
-      window.location.href = '/contato';
+      // Idealmente, redirecionar para uma página de contato ou formulário
+      toast({
+        title: 'Contato Enterprise',
+        description: 'Nossa equipe de vendas entrará em contato em breve.',
+      });
       return;
     }
     
@@ -122,6 +126,7 @@ export default function EscolhaPlanoPage() {
         description: `A lógica de checkout para o plano ${planId} com um provedor como Pagar.me será implementada aqui.`,
     });
 
+    // Simula uma chamada de API
     setTimeout(() => {
         setIsPending(false);
         setCurrentPlanId(null);
@@ -202,3 +207,5 @@ export default function EscolhaPlanoPage() {
     </div>
   );
 }
+
+    
