@@ -2,10 +2,18 @@
 
 'use client';
 
+import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Users, Calendar, BarChart2, TrendingUp, Zap } from "lucide-react";
 import { Area, AreaChart, Bar, BarChart, ResponsiveContainer } from "recharts"
 import { useTenant } from "@/components/providers/tenant-provider";
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase/hooks';
+import { collection, query, where, Timestamp } from 'firebase/firestore';
+import { Paciente } from '@/types/paciente';
+import { Agendamento } from '@/types/agendamento';
+import { startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { baseConverter } from '@/lib/firestore/converters';
+import Link from 'next/link';
 
 const chartData = [
   { name: 'Jan', value: 400 },
@@ -23,10 +31,55 @@ interface TenantDashboardProps {
 }
 
 export default function TenantDashboard({ params }: TenantDashboardProps) {
-  const { tenant } = useTenant();
+  const { tenant, tenantId } = useTenant();
+  const firestore = useFirestore();
+
+  // --- QUERIES DINÂMICAS ---
+
+  // 1. Query para todos os pacientes (para contagem total)
+  const pacientesQuery = useMemoFirebase(() => {
+    if (!firestore || !tenantId) return null;
+    return collection(firestore, `tenants/${tenantId}/pacientes`).withConverter(baseConverter<Paciente>());
+  }, [firestore, tenantId]);
+  const { data: pacientes, isLoading: isLoadingPacientes } = useCollection<Paciente>(pacientesQuery);
+
+  // 2. Query para agendamentos do mês atual
+  const agendamentosMesQuery = useMemoFirebase(() => {
+    if (!firestore || !tenantId) return null;
+    const hoje = new Date();
+    const inicioDoMes = startOfMonth(hoje);
+    const fimDoMes = endOfMonth(hoje);
+    return query(
+      collection(firestore, `tenants/${tenantId}/agendamentos`),
+      where('start', '>=', inicioDoMes),
+      where('start', '<=', fimDoMes)
+    ).withConverter(baseConverter<Agendamento>());
+  }, [firestore, tenantId]);
+  const { data: agendamentosDoMes, isLoading: isLoadingAgendamentos } = useCollection<Agendamento>(agendamentosMesQuery);
+  
+  // 3. Query para novos pacientes no último mês
+  const novosPacientesQuery = useMemoFirebase(() => {
+    if (!firestore || !tenantId) return null;
+    const umMesAtras = subMonths(new Date(), 1);
+    const umMesAtrasTimestamp = Timestamp.fromDate(umMesAtras);
+
+    return query(
+        collection(firestore, `tenants/${tenantId}/pacientes`),
+        where('createdAt', '>=', umMesAtrasTimestamp)
+    ).withConverter(baseConverter<Paciente>());
+  }, [firestore, tenantId]);
+  const { data: novosPacientes, isLoading: isLoadingNovosPacientes } = useCollection<Paciente>(novosPacientesQuery);
+
+
+  // --- CÁLCULOS ---
+  const totalPacientes = pacientes?.length ?? 0;
+  const totalAgendamentosMes = agendamentosDoMes?.length ?? 0;
+  const totalNovosPacientes = novosPacientes?.length ?? 0;
+  const isLoading = isLoadingPacientes || isLoadingAgendamentos || isLoadingNovosPacientes;
+
 
   return (
-    <div className="flex flex-col space-y-8">
+    <div className="flex flex-col space-y-8 p-4 md:p-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight font-headline text-foreground">
           {tenant?.name ? `Dashboard de ${tenant.name}` : `Dashboard da Clínica`}
@@ -41,8 +94,8 @@ export default function TenantDashboard({ params }: TenantDashboardProps) {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+23</div>
-            <p className="text-xs text-muted-foreground">+5 no último mês</p>
+            {isLoading ? <div className="text-2xl font-bold">...</div> : <div className="text-2xl font-bold">{totalPacientes}</div>}
+            <p className="text-xs text-muted-foreground">{`+${totalNovosPacientes} no último mês`}</p>
           </CardContent>
         </Card>
         <Card>
@@ -51,8 +104,8 @@ export default function TenantDashboard({ params }: TenantDashboardProps) {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+78</div>
-            <p className="text-xs text-muted-foreground">+12% vs. mês passado</p>
+             {isLoading ? <div className="text-2xl font-bold">...</div> : <div className="text-2xl font-bold">{totalAgendamentosMes}</div>}
+            <p className="text-xs text-muted-foreground">Agendamentos neste mês</p>
           </CardContent>
         </Card>
         <Card>
@@ -61,19 +114,21 @@ export default function TenantDashboard({ params }: TenantDashboardProps) {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+5</div>
-            <p className="text-xs text-muted-foreground">Neste mês</p>
+             {isLoading ? <div className="text-2xl font-bold">...</div> : <div className="text-2xl font-bold">{totalNovosPacientes}</div>}
+            <p className="text-xs text-muted-foreground">Nos últimos 30 dias</p>
           </CardContent>
         </Card>
-        <Card className="bg-primary/10 border-primary/20 hover:bg-primary/20 transition-colors cursor-pointer">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-primary">Ações Rápidas</CardTitle>
-            <Zap className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-             <div className="text-2xl font-bold text-primary">Novo Agendamento</div>
-            <p className="text-xs text-primary/80">Clique para adicionar</p>
-          </CardContent>
+        <Card className="bg-primary/10 border-primary/20 hover:bg-primary/20 transition-colors cursor-pointer" asChild>
+          <Link href="/agenda">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-primary">Ações Rápidas</CardTitle>
+              <Zap className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-primary">Novo Agendamento</div>
+              <p className="text-xs text-primary/80">Clique para adicionar</p>
+            </CardContent>
+          </Link>
         </Card>
       </div>
 
@@ -81,7 +136,7 @@ export default function TenantDashboard({ params }: TenantDashboardProps) {
         <Card>
           <CardHeader>
             <CardTitle className="font-headline">Evolução de Pacientes</CardTitle>
-            <CardDescription>Novos pacientes cadastrados nos últimos 6 meses.</CardDescription>
+            <CardDescription>Novos pacientes cadastrados nos últimos 6 meses (dados de exemplo).</CardDescription>
           </CardHeader>
           <CardContent className="h-[250px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -100,7 +155,7 @@ export default function TenantDashboard({ params }: TenantDashboardProps) {
         <Card>
           <CardHeader>
             <CardTitle className="font-headline">Consultas por Período</CardTitle>
-            <CardDescription>Volume de consultas realizadas.</CardDescription>
+            <CardDescription>Volume de consultas realizadas (dados de exemplo).</CardDescription>
           </CardHeader>
           <CardContent className="h-[250px] w-full">
              <ResponsiveContainer width="100%" height="100%">
