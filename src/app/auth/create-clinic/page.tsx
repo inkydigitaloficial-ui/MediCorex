@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -66,12 +67,11 @@ export default function CreateClinicPage() {
     if (result.success) {
         toast({ title: 'Clínica criada com sucesso!', description: 'Redirecionando para seu painel...' });
         
-        // Redirecionamento dinâmico para o subdomínio
         const protocol = window.location.protocol;
-        // Em dev, o host é 'localhost:port', em prod é 'medicorex.com.br'
+        // Em dev, o host é 'localhost:port', em prod é o domínio real
         // A lógica de subdomínio funciona apenas em produção, em dev vamos para uma rota normal
         if (process.env.NODE_ENV === 'development') {
-            router.push('/auth/setup-account');
+            router.push(`/_tenants/${clinicSlug}/dashboard`);
         } else {
             const newUrl = `${protocol}//${clinicSlug}.${rootDomain}/dashboard`;
             window.location.href = newUrl;

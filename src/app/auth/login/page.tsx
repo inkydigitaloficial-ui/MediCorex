@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useFormStatus } from 'react-dom';
@@ -70,7 +71,8 @@ function LoginFormComponent() {
             if (process.env.NODE_ENV === 'development') {
                 router.push(`/_tenants/${state.tenantSlug}/dashboard`);
             } else {
-                window.location.href = `${protocol}//${state.tenantSlug}.${rootDomain}`;
+                const newUrl = `${protocol}//${state.tenantSlug}.${rootDomain}`;
+                window.location.href = newUrl;
             }
 
           } else {
