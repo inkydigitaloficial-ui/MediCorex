@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
+import { DomainUtils } from '@/middleware/utils/domain-utils';
 
 function slugify(text: string) {
   return text
@@ -35,7 +36,7 @@ export default function CreateClinicPage() {
 
   useEffect(() => {
     // Define o rootDomain a partir do window.location.host quando o componente é montado no cliente
-    setRootDomain(window.location.host);
+    setRootDomain(DomainUtils.getRootDomain(window.location.host));
   }, []);
 
   useEffect(() => {
@@ -66,8 +67,18 @@ export default function CreateClinicPage() {
     if (result.success) {
         toast({ title: 'Clínica criada com sucesso!', description: 'Redirecionando para seu painel...' });
         
-        const protocol = window.location.protocol;
-        const newUrl = `${protocol}//${clinicSlug}.${rootDomain}/dashboard`;
+        const { protocol, host } = window.location;
+        const currentSubdomain = DomainUtils.extractSubdomain(host);
+
+        // Constrói a nova URL substituindo o subdomínio ou adicionando-o se não houver um.
+        let newHost: string;
+        if (currentSubdomain) {
+            newHost = host.replace(currentSubdomain, clinicSlug);
+        } else {
+            newHost = `${clinicSlug}.${host}`;
+        }
+        
+        const newUrl = `${protocol}//${newHost}/dashboard`;
         window.location.href = newUrl;
 
     } else {

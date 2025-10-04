@@ -15,6 +15,7 @@ import { loginAction } from '../actions';
 import { useAuth } from '@/firebase/hooks';
 import { createSessionCookie } from '../session/actions';
 import { Loader2 } from 'lucide-react';
+import { DomainUtils } from '@/middleware/utils/domain-utils';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -60,10 +61,19 @@ function LoginFormComponent() {
 
           // Se a action retornou um slug, o usuário tem uma clínica
           if (state.tenantSlug) {
-              const protocol = window.location.protocol;
-              const host = window.location.host.replace(`www.`, ''); // Remove www
-              const newUrl = `${protocol}//${state.tenantSlug}.${host}/dashboard`;
+              const { protocol, host } = window.location;
+              const currentSubdomain = DomainUtils.extractSubdomain(host);
+              let newHost = host;
+
+              if(currentSubdomain) {
+                newHost = host.replace(currentSubdomain, state.tenantSlug);
+              } else {
+                newHost = `${state.tenantSlug}.${host}`;
+              }
+              
+              const newUrl = `${protocol}//${newHost}/dashboard`;
               window.location.href = newUrl;
+
           } else {
               // Se não retornou slug, é um novo usuário que precisa criar uma clínica
               router.push('/auth/create-clinic');

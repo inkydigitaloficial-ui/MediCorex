@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -9,6 +10,7 @@ import Link from "next/link";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Logo } from "@/components/logo";
 import { Footer } from '@/components/footer';
+import { DomainUtils } from '@/middleware/utils/domain-utils';
 
 function DemoLink() {
   const [demoUrl, setDemoUrl] = useState('');
@@ -16,10 +18,8 @@ function DemoLink() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const protocol = window.location.protocol;
-      // Em produção, queremos o domínio raiz (ex: medicorex.app),
-      // e não o subdomínio atual (ex: www.medicorex.app)
-      const host = window.location.host.replace(/^www\./, '');
-      const newUrl = `${protocol}//acme.${host}`;
+      const rootDomain = DomainUtils.getRootDomain(window.location.host);
+      const newUrl = `${protocol}//acme.${rootDomain}`;
       setDemoUrl(newUrl);
     }
   }, []);

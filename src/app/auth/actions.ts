@@ -37,8 +37,16 @@ export async function loginAction(prevState: LoginFormState, formData: FormData)
             return { success: true, error: null, tenantSlug: null };
         }
 
-        const firstTenant = tenantUsersSnapshot.docs[0].data();
-        return { success: true, error: null, tenantSlug: firstTenant.tenantId };
+        const tenantUserData = tenantUsersSnapshot.docs[0].data();
+        const tenantDoc = await adminFirestore.collection('tenants').doc(tenantUserData.tenantId).get();
+
+        if (!tenantDoc.exists) {
+            return { error: 'Clínica associada não encontrada.', success: false };
+        }
+        
+        const tenantData = tenantDoc.data();
+        // A action retorna o 'slug' do tenant para o cliente usar no redirecionamento
+        return { success: true, error: null, tenantSlug: tenantData?.slug };
 
     } catch (error: any) {
         if (error.code === 'auth/user-not-found') {
