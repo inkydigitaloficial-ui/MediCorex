@@ -1,4 +1,7 @@
 
+'use client';
+
+import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ArrowRight, Building, CircuitBoard, Lock, CheckCircle } from "lucide-react";
@@ -6,6 +9,34 @@ import Image from "next/image";
 import Link from "next/link";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Logo } from "@/components/logo";
+
+
+// Componente para o link de demonstração dinâmico
+function DemoLink() {
+  const [demoUrl, setDemoUrl] = useState('');
+
+  useEffect(() => {
+    // Esta lógica roda apenas no cliente, onde window está disponível
+    const protocol = window.location.protocol;
+    const host = window.location.host;
+    const newUrl = `${protocol}//acme.${host}`;
+    setDemoUrl(newUrl);
+  }, []);
+
+  if (!demoUrl) {
+    // Renderiza um estado de carregamento ou um botão desabilitado
+    return <Button size="lg" variant="outline" disabled>Ver Demonstração</Button>;
+  }
+
+  return (
+    <Button asChild size="lg" variant="outline">
+      <Link href={demoUrl} prefetch={false}>
+        Ver Demonstração
+      </Link>
+    </Button>
+  );
+}
+
 
 export default function Home() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'landing-hero');
@@ -55,11 +86,7 @@ export default function Home() {
                       Iniciar Teste Gratuito de 7 Dias
                     </Link>
                   </Button>
-                   <Button asChild size="lg" variant="outline">
-                    <Link href="https://acme.localhost:9002" prefetch={false}>
-                      Ver Demonstração
-                    </Link>
-                  </Button>
+                  <DemoLink />
                 </div>
                  <p className="max-w-[600px] text-xs text-muted-foreground pt-4">
                     Teste gratuito de 7 dias do plano Premium. Não é necessário cartão de crédito.

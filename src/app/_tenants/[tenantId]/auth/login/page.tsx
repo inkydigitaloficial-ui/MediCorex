@@ -2,7 +2,7 @@
 'use client';
 
 import { useFormStatus } from 'react-dom';
-import { useEffect, useState, useActionState } from 'react';
+import { useEffect, useState, useActionState, Suspense } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,8 @@ import { useAuth } from '@/firebase/hooks';
 import { createSessionCookie } from '@/app/auth/session/actions';
 import { Logo } from '@/components/logo';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -25,10 +27,11 @@ function SubmitButton() {
   );
 }
 
-export default function TenantLoginPage() {
+function TenantLoginComponent() {
   const [state, formAction] = useActionState(loginAction, { error: null, success: false, tenantSlug: null });
   const { toast } = useToast();
   const auth = useAuth();
+  const router = useRouter();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -55,8 +58,8 @@ export default function TenantLoginPage() {
               title: 'Login bem-sucedido!',
               description: 'Redirecionando para seu painel...',
             });
-            // Para login dentro de um tenant, redireciona para o dashboard do tenant
-            window.location.href = '/dashboard';
+            // Para login dentro de um tenant, sempre redireciona para o dashboard relativo
+            router.push('/dashboard');
           } else {
             throw new Error(sessionResult.message);
           }
@@ -72,7 +75,7 @@ export default function TenantLoginPage() {
             setIsClientSigningIn(false);
         });
     }
-  }, [state, auth, email, password, toast]);
+  }, [state, auth, email, password, toast, router]);
   
   const { pending } = useFormStatus();
   const isDisabled = pending || isClientSigningIn;
@@ -129,4 +132,12 @@ export default function TenantLoginPage() {
           </div>
       </div>
   );
+}
+
+export default function TenantLoginPage() {
+    return (
+        <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+            <TenantLoginComponent />
+        </Suspense>
+    )
 }

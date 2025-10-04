@@ -35,13 +35,7 @@ function LoginFormComponent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isClientSigningIn, setIsClientSigningIn] = useState(false);
-  const [rootDomain, setRootDomain] = useState('');
-
-  useEffect(() => {
-    // Define o rootDomain a partir do window.location.host quando o componente é montado no cliente
-    setRootDomain(window.location.host);
-  }, []);
-
+  
   useEffect(() => {
     if (state.error) {
       toast({
@@ -52,7 +46,7 @@ function LoginFormComponent() {
       setIsClientSigningIn(false); // Garante que o estado de loading é resetado
     }
 
-    if (state.success && auth && rootDomain) {
+    if (state.success && auth) {
       setIsClientSigningIn(true);
       signInWithEmailAndPassword(auth, email, password)
         .then(async (userCredential) => {
@@ -67,12 +61,9 @@ function LoginFormComponent() {
           // Se a action retornou um slug, o usuário tem uma clínica
           if (state.tenantSlug) {
               const protocol = window.location.protocol;
-              if (process.env.NODE_ENV === 'development') {
-                  router.push(`/_tenants/${state.tenantSlug}/dashboard`);
-              } else {
-                  const newUrl = `${protocol}//${state.tenantSlug}.${rootDomain}/dashboard`;
-                  window.location.href = newUrl;
-              }
+              const host = window.location.host;
+              const newUrl = `${protocol}//${state.tenantSlug}.${host}/dashboard`;
+              window.location.href = newUrl;
           } else {
               // Se não retornou slug, é um novo usuário que precisa criar uma clínica
               router.push('/auth/create-clinic');
@@ -87,7 +78,7 @@ function LoginFormComponent() {
            setIsClientSigningIn(false);
         });
     }
-  }, [state, auth, email, password, toast, rootDomain, router]);
+  }, [state, auth, email, password, toast, router]);
   
   useEffect(() => {
     if (searchParams.get('signup') === 'success') {

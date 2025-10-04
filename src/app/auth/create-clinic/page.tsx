@@ -67,14 +67,8 @@ export default function CreateClinicPage() {
         toast({ title: 'Clínica criada com sucesso!', description: 'Redirecionando para seu painel...' });
         
         const protocol = window.location.protocol;
-        // Em dev, o host é 'localhost:port', em prod é o domínio real
-        // A lógica de subdomínio funciona apenas em produção, em dev vamos para uma rota normal
-        if (process.env.NODE_ENV === 'development') {
-            router.push(`/_tenants/${clinicSlug}/dashboard`);
-        } else {
-            const newUrl = `${protocol}//${clinicSlug}.${rootDomain}/dashboard`;
-            window.location.href = newUrl;
-        }
+        const newUrl = `${protocol}//${clinicSlug}.${rootDomain}/dashboard`;
+        window.location.href = newUrl;
 
     } else {
         // Exibe o erro específico retornado pela action
