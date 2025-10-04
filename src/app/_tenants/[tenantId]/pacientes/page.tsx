@@ -63,7 +63,7 @@ export default function PacientesPage({ params }: { params: { tenantId: string }
         open={isAddDialogOpen} 
         onOpenChange={setAddDialogOpen} 
       />
-      <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+      <div className="space-y-6">
           <div className="flex items-center justify-between">
               <h1 className="text-lg font-semibold md:text-2xl font-headline">Pacientes</h1>
                <Button onClick={() => setAddDialogOpen(true)}>
@@ -71,8 +71,8 @@ export default function PacientesPage({ params }: { params: { tenantId: string }
                   Adicionar Paciente
               </Button>
           </div>
-          <div className="flex flex-1 items-start rounded-lg border border-dashed shadow-sm p-4">
-              <div className="w-full max-w-4xl mx-auto">
+          <div className="flex flex-1 items-start justify-center">
+              <div className="w-full max-w-4xl">
                   <Card>
                       <CardHeader>
                           <CardTitle className="flex items-center gap-2 font-headline"><Users className="h-5 w-5 text-primary" /><span>Lista de Pacientes</span></CardTitle>
@@ -97,7 +97,7 @@ export default function PacientesPage({ params }: { params: { tenantId: string }
                   </Card>
               </div>
           </div>
-      </main>
+      </div>
     </>
   );
 }

@@ -69,7 +69,7 @@ export default async function TenantLayout({ children, params }: Props) {
 
   // A conversão de Timestamps do Firestore para Date objects agora é feita
   // dentro de `getCurrentUser` ou no conversor, garantindo que `tenant.trialEnds` seja um objeto Date.
-  const trialEndsDate = tenant.trialEnds ? new Date(tenant.trialEnds) : null;
+  const trialEndsDate = tenant?.trialEnds ? new Date(tenant.trialEnds) : null;
   
   // O layout redireciona se o tenant não for encontrado
   if (!tenant) {
@@ -122,9 +122,9 @@ export default async function TenantLayout({ children, params }: Props) {
               </div>
           </header>
           {role === 'owner' && tenant.subscriptionStatus === 'trialing' && <TrialBanner trialEnds={trialEndsDate} />}
-          <main className="flex-1 p-4 lg:p-6">
-              {children}
-          </main>
+          <div className="flex-1 overflow-y-auto">
+             {children}
+          </div>
         </div>
       </SidebarProvider>
     </TenantProvider>
