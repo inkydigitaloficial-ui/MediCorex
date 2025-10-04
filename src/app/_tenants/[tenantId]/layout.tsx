@@ -71,6 +71,12 @@ export default async function TenantLayout({ children, params }: Props) {
   // dentro de `getCurrentUser` ou no conversor, garantindo que `tenant.trialEnds` seja um objeto Date.
   const trialEndsDate = tenant.trialEnds ? new Date(tenant.trialEnds) : null;
   
+  // O layout redireciona se o tenant não for encontrado
+  if (!tenant) {
+    // Idealmente, o middleware já tratou isso, mas é uma proteção adicional.
+    redirect('/auth/login');
+  }
+  
   return (
     // 3. O TenantProvider envolve todo o layout, disponibilizando os dados para componentes de cliente.
     <TenantProvider tenant={tenant} tenantId={tenantId} role={role}>
