@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { DomainUtils } from './middleware/utils/domain-utils';
 import { RouteUtils } from './middleware/utils/route-utils';
@@ -6,51 +7,51 @@ import { TenantChain } from './middleware/chains/tenant-chain';
 import { ErrorHandler } from './middleware/handlers/error-handler';
 import { MiddlewareContext } from './middleware/types';
 import { middlewareConfig } from './middleware/config';
+import { getCurrentUser } from './utils/session'; // Importa a função de sessão do servidor
 
 export async function middleware(request: NextRequest) {
   try {
-    const { pathname, searchParams } = request.nextUrl;
+    const { pathname } = request.nextUrl;
 
     // Ignora rotas de API e assets estáticos para otimizar a performance.
     if (RouteUtils.isStaticAsset(pathname) || RouteUtils.isApiRoute(pathname)) {
       return NextResponse.next();
     }
-    
-    // Extrai o tenantId do subdomínio e cria o contexto inicial.
-    const tenantId = DomainUtils.extractSubdomain(request.headers.get('host') || '');
+
+    const tenantId = DomainUtils.extractSubdomain(request.headers.get('host'));
+    const authContext = await getCurrentUser(tenantId); // Fonte de verdade para autenticação
+
     let context: MiddlewareContext = {
       request,
       response: NextResponse.next(),
-      tenantId,
-      config: middlewareConfig
+      tenantId: tenantId,
+      user: authContext?.user || null,
+      config: middlewareConfig,
     };
     
-    // Define a sequência de cadeias (chains) a serem executadas.
+    // A AuthChain agora pode ser simplificada, pois a validação de sessão principal já ocorreu.
+    // Vamos manter por enquanto para a lógica de redirecionamento.
     const chains = [
       new AuthChain(),
       new TenantChain(),
     ];
 
-    // Executa as cadeias em sequência.
     for (const chain of chains) {
-      const result = await chain.execute(context);
+      // Passa o contexto atualizado (com 'user' já preenchido) para a cadeia.
+      const result = await chain.execute({ ...context, user: authContext?.user || null });
       
-      // Se a cadeia retornar uma resposta (redirect, rewrite), a execução é interrompida.
       if (!result.shouldContinue) {
         return result.response!;
       }
       
-      // Atualiza o contexto com os novos dados para a próxima cadeia.
       if (result.context) {
         context = { ...context, ...result.context };
       }
     }
     
-    // Se todas as cadeias permitirem, a requisição continua.
     return context.response;
 
   } catch (error) {
-    // Captura qualquer erro inesperado e retorna uma resposta de erro padronizada.
     return ErrorHandler.handle(error, request);
   }
 }
@@ -64,7 +65,6 @@ export const config = {
      * - _next/static (arquivos estáticos)
      * - _next/image (arquivos de otimização de imagem)
      * - favicon.ico (ícone do site)
-     * Isso garante que o middleware não rode em requisições desnecessárias.
      */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],

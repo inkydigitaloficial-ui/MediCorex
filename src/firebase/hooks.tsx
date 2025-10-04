@@ -30,15 +30,9 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
     setDbInstance(db);
 
     const unsubscribe = onIdTokenChanged(auth, async (user) => {
-      if (user) {
-        const token = await user.getIdToken();
-        // O cookie `firebaseIdToken` é usado pelo middleware no Edge.
-        // O cookie `__session` é usado pelas Server Actions/APIs no Node.js.
-        // Manter ambos pode ser necessário dependendo da arquitetura.
-        document.cookie = `firebaseIdToken=${token}; path=/;`;
-      } else {
-        document.cookie = 'firebaseIdToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-      }
+      // O cookie __session é seguro (http-only) e gerenciado por Server Actions.
+      // Não precisamos mais setar cookies de token no lado do cliente.
+      // O onIdTokenChanged ainda é útil para reatividade no cliente, se necessário.
     });
 
     return () => unsubscribe();

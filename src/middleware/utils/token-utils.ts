@@ -1,3 +1,4 @@
+
 import { CacheUtils } from './cache-utils';
 import { NextRequest } from 'next/server';
 import { AuthResult } from '../types';
@@ -13,23 +14,28 @@ export class TokenUtils {
     }
 
     try {
-      // 1. Tenta obter o token decodificado do cache.
-      const cachedDecodedToken = CacheUtils.get(token);
-      if (cachedDecodedToken) {
-        return this.validateTenantAccess(cachedDecodedToken, tenantId);
-      }
+      // O token aqui é o cookie de sessão seguro, não um ID token.
+      // A validação via API ou SDK Admin é o caminho correto.
+      // A lógica de cache pode ser inadequada para cookies de sessão que são revogáveis.
+      // Por simplicidade e segurança, vamos validar sempre no servidor.
 
-      // 2. Se não estiver no cache, chama a API de verificação interna.
+      // A validação agora é feita pela função `getCurrentUser`, que usa `verifySessionCookie`.
+      // Se chegamos aqui, o `getCurrentUser` já foi chamado indiretamente.
+      // A lógica de validação de token é implicitamente tratada pela verificação de `user` no middleware.
+      // Esta função está se tornando um ponto de potencial confusão.
+      // Simplificando: a existência do `user` no contexto já é a validação.
+      
+      // Para manter a compatibilidade com a `AuthChain` que ainda a chama, vamos delegar
+      // a uma API, mas a longo prazo, isso deveria ser refatorado.
       const verifyApiUrl = new URL('/api/auth/verify-token', request.nextUrl.origin);
       
       const response = await fetch(verifyApiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Passa o cookie original para a API, caso necessário para outras validações.
           'Cookie': request.headers.get('cookie') || ''
         },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token }), // O token aqui é o __session cookie
       });
 
       if (!response.ok) {
@@ -39,10 +45,6 @@ export class TokenUtils {
 
       const decodedToken = await response.json();
       
-      // 3. Armazena o token decodificado no cache para futuras requisições.
-      CacheUtils.set(token, decodedToken);
-      
-      // 4. Valida se o usuário tem acesso ao tenant específico.
       return this.validateTenantAccess(decodedToken, tenantId);
 
     } catch (error: any) {
@@ -74,9 +76,9 @@ export class TokenUtils {
   }
 
   /**
-   * Extrai o token do cookie 'firebaseIdToken'.
+   * Extrai o token do cookie '__session'.
    */
   static extractToken(request: NextRequest): string | null {
-    return request.cookies.get('firebaseIdToken')?.value || null;
+    return request.cookies.get('__session')?.value || null;
   }
 }

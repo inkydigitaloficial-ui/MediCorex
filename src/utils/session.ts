@@ -13,7 +13,7 @@ export interface AuthContext {
     picture?: string;
   };
   tenantId: string | null;
-  tenant: Tenant | any; // Permite tenant ser nulo ou qualquer objeto
+  tenant: Tenant | null;
   role: string | null;
 }
 

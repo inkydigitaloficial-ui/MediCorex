@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { TokenUtils } from '../utils/token-utils';
 import { RouteUtils } from '../utils/route-utils';
@@ -9,7 +10,6 @@ export class AuthChain {
     const pathname = request.nextUrl.pathname;
     
     // 1. Rotas públicas não precisam de verificação de token.
-    // Simplesmente enriquecemos o contexto para saber que não há usuário.
     if (RouteUtils.isPublicRoute(pathname)) {
       return { shouldContinue: true, context: { ...context, user: null } };
     }
@@ -65,7 +65,7 @@ export class AuthChain {
         // Se o token expirou ou foi revogado, limpa o cookie e redireciona para o login.
       if (authResult.error?.includes('expired') || authResult.error?.includes('revoked')) {
         const response = NextResponse.redirect(new URL('/auth/login', request.url));
-        response.cookies.delete('firebaseIdToken');
+        response.cookies.delete('__session');
         return { shouldContinue: false, response };
       }
        // Se o usuário não tem acesso ao tenant específico, redireciona para não autorizado.
