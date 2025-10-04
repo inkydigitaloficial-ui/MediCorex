@@ -10,21 +10,19 @@ export class DomainUtils {
   static extractSubdomain(hostname: string | null): string | null {
     if (!hostname) return null;
 
-    // Em desenvolvimento, o host é algo como "localhost:9002"
-    // Não há subdomínio real, então retornamos null.
-    // O roteamento será feito pela estrutura de pastas _tenants/[tenantId]
-    if (hostname.includes('localhost')) {
+    const normalizedHostname = hostname.toLowerCase();
+
+    // Em desenvolvimento, permite que `sub.localhost:port` funcione como um subdomínio.
+    if (normalizedHostname.includes('localhost')) {
+      const parts = normalizedHostname.split('.');
+      // Se tivermos algo como "tenant.localhost:9002", o 'tenant' será o subdomínio.
+      if (parts.length > 1 && parts[0] !== 'localhost') {
+        return parts[0];
+      }
       return null;
     }
     
-    // Em produção, usamos a variável de ambiente para o domínio principal
-    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
-    if (!rootDomain) {
-      // Se a variável não estiver definida em prod, retorna null para evitar erros.
-      return null;
-    }
-
-    const normalizedHostname = hostname.toLowerCase();
+    const rootDomain = middlewareConfig.rootDomain;
 
     // Se o hostname for igual ao domínio raiz, não há subdomínio.
     if (normalizedHostname === rootDomain) {

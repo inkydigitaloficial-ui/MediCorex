@@ -1,7 +1,8 @@
+
 // src/middleware/config.ts
 export const middlewareConfig = {
   // Domínio raiz da aplicação em produção.
-  rootDomain: process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:3000',
+  rootDomain: process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'medicorex.app',
   
   // Rotas que não exigem autenticação.
   publicRoutes: [

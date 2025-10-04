@@ -30,12 +30,16 @@ export class TenantChain {
     // Se há um tenantId, mas o usuário não está autenticado, o AuthChain já deveria ter
     // redirecionado. Continuamos para que a página de login do tenant seja exibida.
     if (!user) {
-        // Reescreve para a página de login específica do tenant
-        if (request.nextUrl.pathname.endsWith('/auth/login')) {
+        const isLoginPage = request.nextUrl.pathname === '/auth/login';
+        
+        // Se já está na página de login, apenas reescreve para a versão do tenant.
+        if (isLoginPage) {
             const rewrittenUrl = RewriteHandler.applyTenantRewrite(request, tenantId);
             return { shouldContinue: false, response: rewrittenUrl };
         }
+        
         // Para outras rotas protegidas do tenant, redireciona para a URL de login canônica.
+        // A lógica de subdomínio garantirá que o login ocorra no contexto do tenant.
         const loginUrl = new URL(`/auth/login`, request.nextUrl.origin);
         return { shouldContinue: false, response: NextResponse.redirect(loginUrl) };
     }
