@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useMemo } from 'react';
@@ -63,9 +62,10 @@ export default function TenantDashboard({ params }: TenantDashboardProps) {
     const umMesAtras = subMonths(new Date(), 1);
     const umMesAtrasTimestamp = Timestamp.fromDate(umMesAtras);
 
+    // Ajuste aqui: O Firestore SDK do cliente usa 'where' com objetos Date, não Timestamp
     return query(
         collection(firestore, `tenants/${tenantId}/pacientes`),
-        where('createdAt', '>=', umMesAtrasTimestamp)
+        where('createdAt', '>=', umMesAtras)
     ).withConverter(baseConverter<Paciente>());
   }, [firestore, tenantId]);
   const { data: novosPacientes, isLoading: isLoadingNovosPacientes } = useCollection<Paciente>(novosPacientesQuery);
@@ -79,7 +79,7 @@ export default function TenantDashboard({ params }: TenantDashboardProps) {
 
 
   return (
-    <div className="flex flex-col space-y-8 p-4 md:p-6">
+    <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight font-headline text-foreground">
           {tenant?.name ? `Dashboard de ${tenant.name}` : `Dashboard da Clínica`}
@@ -166,6 +166,8 @@ export default function TenantDashboard({ params }: TenantDashboardProps) {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </main>
   );
 }
+
+    
