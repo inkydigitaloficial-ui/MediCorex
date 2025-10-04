@@ -2,90 +2,13 @@
 'use client';
 
 import { useState } from 'react';
-import { collection, addDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { useFirestore } from '@/firebase/hooks';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowRight, UserPlus, Users } from "lucide-react";
 import Link from "next/link";
 import { Paciente } from '@/types/paciente';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-import { baseConverter } from '@/lib/firestore/converters';
-
-const pacienteSchema = z.object({
-  nome: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres.' }),
-  email: z.string().email({ message: 'Por favor, insira um email válido.' }),
-  cpf: z.string().optional(),
-  telefone: z.string().optional(),
-});
-
-type PacienteFormData = z.infer<typeof pacienteSchema>;
-
-function AddPacienteDialog({ tenantId, onOpenChange, open }: { tenantId: string; open: boolean; onOpenChange: (open: boolean) => void; }) {
-  const firestore = useFirestore();
-  const { toast } = useToast();
-  const router = useRouter(); 
-  const form = useForm<PacienteFormData>({
-    resolver: zodResolver(pacienteSchema),
-    defaultValues: { nome: '', email: '', cpf: '', telefone: '' },
-  });
-
-  const onSubmit = async (data: PacienteFormData) => {
-    if (!firestore || !tenantId) return;
-
-    const pacientesCollectionRef = collection(firestore, `tenants/${tenantId}/pacientes`).withConverter(baseConverter<Paciente>());
-    
-    addDoc(pacientesCollectionRef, data as Omit<Paciente, 'id'>)
-    .then(() => {
-        toast({
-            title: 'Paciente adicionado!',
-            description: `${data.nome} foi adicionado à sua lista de pacientes.`,
-        });
-        form.reset();
-        onOpenChange(false);
-        router.refresh(); 
-    })
-    .catch(() => {
-      const permissionError = new FirestorePermissionError({
-        path: pacientesCollectionRef.path,
-        operation: 'create',
-        requestResourceData: data,
-      });
-      errorEmitter.emit('permission-error', permissionError);
-    });
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Adicionar Novo Paciente</DialogTitle>
-          <DialogDescription>Preencha as informações para cadastrar um novo paciente.</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField name="nome" control={form.control} render={({ field }) => <FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-            <FormField name="email" control={form.control} render={({ field }) => <FormItem><FormLabel>Email</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-            <FormField name="cpf" control={form.control} render={({ field }) => <FormItem><FormLabel>CPF</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-            <FormField name="telefone" control={form.control} render={({ field }) => <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} />
-            <Button type="submit" disabled={form.formState.isSubmitting} className='w-full'>
-              {form.formState.isSubmitting ? 'Salvando...' : 'Salvar Paciente'}
-            </Button>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
-  );
-}
+import { AddPacienteDialog } from './add-paciente-dialog';
 
 function PacienteListItem({ paciente, tenantId }: { paciente: Paciente, tenantId: string }) {
     return (
@@ -106,6 +29,12 @@ function PacienteListItem({ paciente, tenantId }: { paciente: Paciente, tenantId
 
 export function PacientesClientView({ pacientes, tenantId }: { pacientes: Paciente[], tenantId: string }) {
     const [isAddDialogOpen, setAddDialogOpen] = useState(false);
+    const router = useRouter();
+    
+    // A função router.refresh() será chamada no dialog após a adição.
+    const onPatientAdded = () => {
+        router.refresh();
+    }
 
     if (!tenantId) {
         return null;
@@ -113,7 +42,7 @@ export function PacientesClientView({ pacientes, tenantId }: { pacientes: Pacien
 
     return (
         <>
-            <AddPacienteDialog tenantId={tenantId} open={isAddDialogOpen} onOpenChange={setAddDialogOpen} />
+            <AddPacienteDialog tenantId={tenantId} open={isAddDialogOpen} onOpenChange={setAddDialogOpen} onPatientAdded={onPatientAdded} />
             <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
                 <div className="flex items-center justify-between">
                     <h1 className="text-lg font-semibold md:text-2xl font-headline">Pacientes</h1>
